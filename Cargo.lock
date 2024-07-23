@@ -5,3 +5,7 @@ version = 3
 [[package]]
 name = "mini-core"
 version = "0.1.0"
+
+[[package]]
+name = "mini-render"
+version = "0.1.0"
