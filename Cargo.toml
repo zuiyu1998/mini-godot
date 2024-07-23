@@ -1,3 +1,3 @@
 [workspace]
-members = ["./crates/mini-core", "crates/mini-render"]
+members = ["./crates/mini-core", "crates/mini-pool", "crates/mini-renderer"]
 resolver = "2"

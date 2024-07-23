@@ -7,5 +7,9 @@ name = "mini-core"
 version = "0.1.0"
 
 [[package]]
-name = "mini-render"
+name = "mini-pool"
+version = "0.1.0"
+
+[[package]]
+name = "mini-renderer"
 version = "0.1.0"
