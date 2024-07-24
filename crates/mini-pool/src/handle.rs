@@ -8,3 +8,12 @@ pub struct Handle<T> {
 
     pub(crate) type_marker: PhantomData<T>,
 }
+
+impl<T> Copy for Handle<T> {}
+
+impl<T> Clone for Handle<T> {
+    #[inline]
+    fn clone(&self) -> Handle<T> {
+        *self
+    }
+}
