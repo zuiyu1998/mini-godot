@@ -13,3 +13,7 @@ version = "0.1.0"
 [[package]]
 name = "mini-renderer"
 version = "0.1.0"
+
+[[package]]
+name = "mini-resource"
+version = "0.1.0"
