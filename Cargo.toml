@@ -1,3 +1,12 @@
 [workspace]
-members = ["./crates/mini-core", "crates/mini-pool", "crates/mini-renderer", "crates/mini-resource", "crates/mini-task"]
+members = [
+    "./crates/mini-core",
+    "crates/mini-pool",
+    "crates/mini-renderer",
+    "crates/mini-resource",
+    "crates/mini-task",
+]
 resolver = "2"
+
+[workspace.dependencies]
+thiserror = { version = "1.0" }
