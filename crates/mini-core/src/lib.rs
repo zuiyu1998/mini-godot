@@ -1,3 +1,7 @@
+pub mod type_uuid;
+
 pub use uuid;
 
-pub trait ReflectBase {}
+pub mod prelude {
+    pub use crate::type_uuid::*;
+}

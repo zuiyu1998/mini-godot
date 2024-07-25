@@ -1,11 +1,5 @@
 [workspace]
-members = [
-    "./crates/mini-core",
-    "crates/mini-pool",
-    "crates/mini-renderer",
-    "crates/mini-resource",
-    "crates/mini-task",
-]
+members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
