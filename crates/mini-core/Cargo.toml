@@ -11,3 +11,4 @@ num-traits = "0.2.14"
 parking_lot = "0.12.0"
 futures = { version = "0.3.17", features = ["thread-pool"] }
 uuid = { version = "1", features = ["v4"] }
+rustc-hash = { version = "2.0.0" }

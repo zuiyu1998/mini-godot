@@ -2,6 +2,8 @@ mod std_impl;
 
 use uuid::Uuid;
 
+pub use mini_core_macros::TypeUuidProvider;
+
 //为类型实现唯一的标识
 pub trait TypeUuidProvider: Sized {
     fn type_uuid() -> Uuid;

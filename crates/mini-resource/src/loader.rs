@@ -1,82 +1,67 @@
+use std::{fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
+
+use mini_core::{prelude::TypeUuidProvider, uuid::Uuid};
+
 use crate::io::ResourceIo;
-use mini_core::uuid::Uuid;
-use std::{any::Any, fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
-pub trait ResourceData: 'static {}
-
-pub trait ResourceError: 'static + Debug {}
-
-pub struct LoaderPayload(pub(crate) Box<dyn ResourceData>);
-
-pub struct LoadError(Option<Arc<dyn ResourceError>>);
-
-pub type BoxedLoaderFuture = Pin<Box<dyn Future<Output = Result<LoaderPayload, LoadError>> + Send>>;
-
-pub trait ResourceLoaderType: 'static + Send {
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
-
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-impl<T> ResourceLoaderType for T
-where
-    T: ResourceLoader,
-{
-    fn into_any(self: Box<Self>) -> Box<dyn Any> {
-        self
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
-pub trait ResourceLoader: ResourceLoaderType {
-    //支持的文件
-    fn extensions(&self) -> &[&str];
-
-    fn load(&self, path: PathBuf, io: Arc<dyn ResourceIo>) -> BoxedLoaderFuture;
-
-    fn data_type_uuid(&self) -> Uuid;
-}
-
-#[derive(Default)]
-pub struct ResourceLoadersContainer {
+pub struct ResourceLoaders {
     loaders: Vec<Box<dyn ResourceLoader>>,
 }
 
-impl ResourceLoadersContainer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn set<T>(&mut self, loader: T) -> Option<T>
-    where
-        T: ResourceLoader,
-    {
-        if let Some(existing_loader) = self
-            .loaders
-            .iter_mut()
-            .find_map(|l| (**l).as_any_mut().downcast_mut::<T>())
-        {
-            Some(std::mem::replace(existing_loader, loader))
-        } else {
-            self.loaders.push(Box::new(loader));
-            None
-        }
-    }
-
+impl ResourceLoaders {
     pub fn iter(&self) -> impl Iterator<Item = &dyn ResourceLoader> {
         self.loaders.iter().map(|boxed| &**boxed)
     }
 
+    /// Returns an iterator yielding mutable references to "untyped" resource loaders.
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut dyn ResourceLoader> {
         self.loaders.iter_mut().map(|boxed| &mut **boxed)
     }
+}
+
+pub type BoxedLoaderFuture = Pin<Box<dyn Future<Output = Result<LoaderPayload, LoadError>> + Send>>;
+
+pub struct LoaderPayload(pub(crate) Box<dyn ResourceData>);
+
+impl LoaderPayload {
+    pub fn new<T: ResourceData>(data: T) -> Self {
+        Self(Box::new(data))
+    }
+}
+
+pub trait ResourceLoader: 'static {
+    //支持的文件
+    fn extensions(&self) -> &[&str];
+
+    fn supports_extension(&self, ext: &str) -> bool {
+        self.extensions()
+            .iter()
+            .any(|e| mini_core::utils::cmp_strings_case_insensitive(e, ext))
+    }
+
+    fn load(&self, path: PathBuf, io: Arc<dyn ResourceIo>) -> BoxedLoaderFuture;
+
+    //用于向上转换
+    fn data_type_uuid(&self) -> Uuid;
+}
+
+#[derive(Debug, Clone)]
+pub struct LoadError(pub Option<Arc<dyn ResourceLoadError>>);
+
+impl LoadError {
+    /// Creates new loading error from a value of the given type.
+    pub fn new<T: ResourceLoadError>(value: T) -> Self {
+        Self(Some(Arc::new(value)))
+    }
+}
+
+pub trait ResourceLoadError: 'static + Debug + Send + Sync {}
+
+impl<T> ResourceLoadError for T where T: 'static + Debug + Send + Sync {}
+
+pub trait TypedResourceData: TypeUuidProvider + ResourceData {}
+
+pub trait ResourceData: 'static + Debug + Send {
+    //用于向上转换
+    fn type_uuid(&self) -> Uuid;
 }
