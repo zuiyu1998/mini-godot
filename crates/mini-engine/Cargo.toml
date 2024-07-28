@@ -1,0 +1,10 @@
+[package]
+name = "mini-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mini-core = { path = "../mini-core" }
+
+winit = { version = "0.30.4" }
+wgpu = { version = "22.0" }

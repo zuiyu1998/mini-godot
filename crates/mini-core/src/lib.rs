@@ -1,6 +1,7 @@
 pub mod type_uuid;
 pub mod utils;
 
+pub use futures_lite;
 pub use parking_lot;
 pub use uuid;
 
