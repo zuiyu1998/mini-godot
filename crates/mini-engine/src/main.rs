@@ -38,6 +38,7 @@ pub struct InitializedGraphicsContext {
     queue: Queue,
     instance: Instance,
     surface: Surface<'static>,
+    render_pipeline: wgpu::RenderPipeline,
 }
 
 impl InitializedGraphicsContext {
@@ -55,7 +56,7 @@ impl InitializedGraphicsContext {
             });
 
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -74,6 +75,9 @@ impl InitializedGraphicsContext {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+
+            render_pass.set_pipeline(&self.render_pipeline); // 2.
+            render_pass.draw(0..3, 0..1); // 3.
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -87,7 +91,17 @@ pub enum GraphicsContext {
     Uninitialized,
 }
 
-type FutureRendererResources = Arc<Mutex<Option<(Device, Queue, Instance, Surface<'static>)>>>;
+type FutureRendererResources = Arc<
+    Mutex<
+        Option<(
+            Device,
+            Queue,
+            Instance,
+            Surface<'static>,
+            wgpu::RenderPipeline,
+        )>,
+    >,
+>;
 
 impl GraphicsContext {
     pub fn initialize_graphics_context(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -162,13 +176,67 @@ impl GraphicsContext {
 
             surface.configure(&device, &config);
 
+            let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
+
+            let render_pipeline_layout =
+                device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: Some("Render Pipeline Layout"),
+                    bind_group_layouts: &[],
+                    push_constant_ranges: &[],
+                });
+
+            let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("Render Pipeline"),
+                layout: Some(&render_pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main", // 1.
+                    buffers: &[],           // 2.
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    // 3.
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        // 4.
+                        format: config.format,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList, // 1.
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw, // 2.
+                    cull_mode: Some(wgpu::Face::Back),
+                    // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    // Requires Features::DEPTH_CLIP_CONTROL
+                    unclipped_depth: false,
+                    // Requires Features::CONSERVATIVE_RASTERIZATION
+                    conservative: false,
+                },
+                depth_stencil: None, // 1.
+                multisample: wgpu::MultisampleState {
+                    count: 1,                         // 2.
+                    mask: !0,                         // 3.
+                    alpha_to_coverage_enabled: false, // 4.
+                },
+                multiview: None, // 5.
+                cache: None,     // 6.
+            });
+
             let mut future_renderer_resources_inner = future_renderer_resources_clone.lock();
-            *future_renderer_resources_inner = Some((device, queue, instance, surface));
+            *future_renderer_resources_inner =
+                Some((device, queue, instance, surface, render_pipeline));
         };
 
         futures_lite::future::block_on(async_renderer);
 
-        let (device, queue, instance, surface) = future_renderer_resources.lock().take().unwrap();
+        let (device, queue, instance, surface, render_pipeline) =
+            future_renderer_resources.lock().take().unwrap();
 
         *self = GraphicsContext::Initialized(InitializedGraphicsContext {
             window,
@@ -176,6 +244,7 @@ impl GraphicsContext {
             queue,
             instance,
             surface,
+            render_pipeline,
         })
     }
 
