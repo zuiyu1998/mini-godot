@@ -903,6 +903,7 @@ dependencies = [
 name = "mini-core"
 version = "0.1.0"
 dependencies = [
+ "downcast-rs",
  "futures",
  "futures-lite",
  "mini-core-macros",
