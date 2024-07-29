@@ -1,9 +1,10 @@
 use std::{fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
-use mini_core::{prelude::TypeUuidProvider, uuid::Uuid};
+use mini_core::{downcast::Downcast, prelude::TypeUuidProvider, uuid::Uuid};
 
 use crate::io::ResourceIo;
 
+#[derive(Default)]
 pub struct ResourceLoaders {
     loaders: Vec<Box<dyn ResourceLoader>>,
 }
@@ -21,7 +22,7 @@ impl ResourceLoaders {
 
 pub type BoxedLoaderFuture = Pin<Box<dyn Future<Output = Result<LoaderPayload, LoadError>> + Send>>;
 
-pub struct LoaderPayload(pub(crate) Box<dyn ResourceData>);
+pub struct LoaderPayload(pub(crate) Box<dyn ErasedResourceData>);
 
 impl LoaderPayload {
     pub fn new<T: ResourceData>(data: T) -> Self {
@@ -59,9 +60,15 @@ pub trait ResourceLoadError: 'static + Debug + Send + Sync {}
 
 impl<T> ResourceLoadError for T where T: 'static + Debug + Send + Sync {}
 
-pub trait TypedResourceData: TypeUuidProvider + ResourceData {}
+pub trait ResourceData: TypeUuidProvider + 'static + Send + Sync + Debug {}
 
-pub trait ResourceData: 'static + Debug + Send {
+impl<T: ResourceData> ErasedResourceData for T {
+    fn type_uuid(&self) -> Uuid {
+        <T as TypeUuidProvider>::type_uuid()
+    }
+}
+
+pub trait ErasedResourceData: 'static + Debug + Send + Downcast {
     //用于向上转换
     fn type_uuid(&self) -> Uuid;
 }

@@ -10,8 +10,8 @@ use std::{
 };
 
 use crate::{
-    io::ResourceIo,
-    loader::{LoadError, ResourceLoader, ResourceLoaders, TypedResourceData},
+    io::{FsResourceIo, ResourceIo},
+    loader::{ErasedResourceData, LoadError, ResourceData, ResourceLoader, ResourceLoaders},
     resource::{Resource, ResourceKind, ResourceState, UntypedResource},
 };
 
@@ -20,9 +20,15 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
+    pub fn new(task_pool: Arc<TaskPool>) -> Self {
+        Self {
+            state: Arc::new(Mutex::new(ResourceManagerState::new(task_pool))),
+        }
+    }
+
     pub fn request<T>(&self, path: impl AsRef<Path>) -> Resource<T>
     where
-        T: TypedResourceData,
+        T: ResourceData,
     {
         let untyped = self.state().load(path);
         let actual_type_uuid = untyped.type_uuid();
@@ -60,6 +66,16 @@ pub struct ResourceManagerState {
 }
 
 impl ResourceManagerState {
+    pub(crate) fn new(task_pool: Arc<TaskPool>) -> Self {
+        Self {
+            task_pool,
+            loaders: Default::default(),
+            built_in_resources: Default::default(),
+            // Use the file system resource io by default
+            resource_io: Arc::new(FsResourceIo),
+        }
+    }
+
     pub fn task_pool(&self) -> Arc<TaskPool> {
         self.task_pool.clone()
     }

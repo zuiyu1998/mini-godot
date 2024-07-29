@@ -7,5 +7,6 @@ pub mod manager;
 pub mod prelude {
     pub use crate::io::*;
     pub use crate::loader::*;
+    pub use crate::manager::*;
     pub use crate::resource::*;
 }

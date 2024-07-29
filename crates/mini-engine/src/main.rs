@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use mini_core::{futures_lite, parking_lot::Mutex};
+use mini_engine::prelude::Engine;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -20,12 +21,14 @@ fn main() {
 
 pub struct WinitRunnerState {
     graphics_context: GraphicsContext,
+    engine: Engine,
 }
 
 impl WinitRunnerState {
     pub fn new() -> Self {
         WinitRunnerState {
             graphics_context: GraphicsContext::Uninitialized,
+            engine: Engine::from_params(),
         }
     }
 }

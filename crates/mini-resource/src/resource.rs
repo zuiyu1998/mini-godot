@@ -15,11 +15,11 @@ use mini_core::{
     uuid::{uuid, Uuid},
 };
 
-use crate::loader::{LoadError, ResourceData, ResourceLoadError, TypedResourceData};
+use crate::loader::{ErasedResourceData, LoadError, ResourceData, ResourceLoadError};
 
 pub struct Resource<T>
 where
-    T: TypedResourceData,
+    T: ResourceData,
 {
     pub untyped: UntypedResource,
     pub type_marker: PhantomData<T>,
@@ -149,7 +149,7 @@ impl Display for ResourceKind {
 
 #[derive(Debug)]
 pub enum ResourceState {
-    Ok(Box<dyn ResourceData>),
+    Ok(Box<dyn ErasedResourceData>),
     LoadError {
         /// An error. This wrapped in Option only to be Default_ed.
         error: LoadError,

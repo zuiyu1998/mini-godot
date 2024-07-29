@@ -5,6 +5,10 @@ edition = "2021"
 
 [dependencies]
 mini-core = { path = "../mini-core" }
+mini-resource = { path = "../mini-resource" }
+mini-task = { path = "../mini-task" }
 
 winit = { version = "0.30.4" }
 wgpu = { version = "22.0" }
+
+image = { version = "0.25" }
