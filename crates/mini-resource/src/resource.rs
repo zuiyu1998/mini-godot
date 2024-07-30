@@ -1,5 +1,5 @@
 use std::{
-    fmt::{Display, Formatter},
+    fmt::{Debug, Display, Formatter},
     future::Future,
     marker::PhantomData,
     ops::{Deref, DerefMut},
@@ -10,12 +10,28 @@ use std::{
 };
 
 use mini_core::{
+    downcast::Downcast,
     parking_lot::Mutex,
     type_uuid::TypeUuidProvider,
     uuid::{uuid, Uuid},
 };
 
-use crate::loader::{ErasedResourceData, LoadError, ResourceData, ResourceLoadError};
+use crate::loader::{LoadError, ResourceLoadError};
+
+impl<T> ResourceLoadError for T where T: 'static + Debug + Send + Sync {}
+
+pub trait ResourceData: TypeUuidProvider + 'static + Send + Sync + Debug {}
+
+impl<T: ResourceData> ErasedResourceData for T {
+    fn type_uuid(&self) -> Uuid {
+        <T as TypeUuidProvider>::type_uuid()
+    }
+}
+
+pub trait ErasedResourceData: 'static + Debug + Send + Downcast {
+    //用于向上转换
+    fn type_uuid(&self) -> Uuid;
+}
 
 pub struct Resource<T>
 where

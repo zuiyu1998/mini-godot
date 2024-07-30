@@ -11,8 +11,11 @@ use std::{
 
 use crate::{
     io::{FsResourceIo, ResourceIo},
-    loader::{ErasedResourceData, LoadError, ResourceData, ResourceLoader, ResourceLoaders},
-    resource::{Resource, ResourceKind, ResourceState, UntypedResource},
+    loader::{ErasedResourceLoader, LoadError, ResourceLoader, ResourceLoaders},
+    meta::ResourceMetas,
+    resource::{
+        ErasedResourceData, Resource, ResourceData, ResourceKind, ResourceState, UntypedResource,
+    },
 };
 
 pub struct ResourceManager {
@@ -56,6 +59,7 @@ impl ResourceManager {
 
 pub struct ResourceManagerState {
     pub loaders: ResourceLoaders,
+    pub metas: ResourceMetas,
 
     //内置资源
     pub built_in_resources: FxHashMap<PathBuf, UntypedResource>,
@@ -66,10 +70,16 @@ pub struct ResourceManagerState {
 }
 
 impl ResourceManagerState {
+    pub fn add_loader<L: ResourceLoader>(&mut self, loader: L) {
+        self.loaders.push(loader);
+        self.metas.insert::<L>();
+    }
+
     pub(crate) fn new(task_pool: Arc<TaskPool>) -> Self {
         Self {
             task_pool,
             loaders: Default::default(),
+            metas: Default::default(),
             built_in_resources: Default::default(),
             // Use the file system resource io by default
             resource_io: Arc::new(FsResourceIo),
@@ -80,7 +90,7 @@ impl ResourceManagerState {
         self.task_pool.clone()
     }
 
-    fn find_loader(&self, path: &Path) -> Option<&dyn ResourceLoader> {
+    fn find_loader(&self, path: &Path) -> Option<&dyn ErasedResourceLoader> {
         path.extension().and_then(|extension| {
             self.loaders
                 .iter()
@@ -92,10 +102,16 @@ impl ResourceManagerState {
         &self,
         path: PathBuf,
         resource: UntypedResource,
-        loader: &dyn ResourceLoader,
+        loader: &dyn ErasedResourceLoader,
         _reload: bool,
     ) {
-        let loader_future = loader.load(path.clone(), self.resource_io.clone());
+        let meta = self
+            .metas
+            .get(&loader.data_type_uuid())
+            .and_then(|meta| loader.default_meta_from_dyn(meta.as_ref()))
+            .unwrap_or_else(|| loader.default_meta());
+
+        let loader_future = loader.load(path.clone(), self.resource_io.clone(), meta);
         self.task_pool.spawn_task(async move {
             match loader_future.await {
                 Ok(data) => {

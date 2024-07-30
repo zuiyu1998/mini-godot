@@ -9,6 +9,8 @@ pub type ResourceIoFuture<'a, V> = Pin<Box<dyn Future<Output = V> + Send + 'a>>;
 pub enum FileLoadError {
     #[error("{0}")]
     IoError(#[from] IoError),
+    #[error("{0}")]
+    Custom(String),
 }
 
 pub trait ResourceIo: Send + Sync + 'static {

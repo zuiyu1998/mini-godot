@@ -1,8 +1,8 @@
 pub mod io;
 pub mod loader;
-pub mod resource;
-
 pub mod manager;
+pub mod meta;
+pub mod resource;
 
 pub mod prelude {
     pub use crate::io::*;
