@@ -809,6 +809,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e05e7e6723e3455f4818c7b26e855439f7546cf617ef669d1adedb8669e5cb9"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "glow"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1239,10 +1248,18 @@ version = "0.1.0"
 dependencies = [
  "image",
  "mini-core",
+ "mini-renderer",
  "mini-resource",
  "mini-task",
- "wgpu",
- "winit",
+ "mini-window",
+ "mini-winit",
+]
+
+[[package]]
+name = "mini-math"
+version = "0.1.0"
+dependencies = [
+ "glam",
 ]
 
 [[package]]
@@ -1252,6 +1269,11 @@ version = "0.1.0"
 [[package]]
 name = "mini-renderer"
 version = "0.1.0"
+dependencies = [
+ "mini-core",
+ "mini-window",
+ "wgpu",
+]
 
 [[package]]
 name = "mini-resource"
@@ -1273,6 +1295,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "mini-window"
+version = "0.1.0"
+dependencies = [
+ "mini-core",
+ "mini-math",
+ "raw-window-handle",
+]
+
+[[package]]
+name = "mini-winit"
+version = "0.1.0"
+dependencies = [
+ "mini-window",
+ "winit",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1290,9 +1329,9 @@ dependencies = [
 
 [[package]]
 name = "naga"
-version = "22.0.0"
+version = "22.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09eeccb9b50f4f7839b214aa3e08be467159506a986c18e0702170ccf720a453"
+checksum = "8bd5a652b6faf21496f2cfd88fc49989c8db0825d1f6746b1a71a6ede24a63ad"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -2665,9 +2704,9 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
 [[package]]
 name = "wgpu"
-version = "22.0.0"
+version = "22.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c87e07e87a179614940ad845397e03201847453a37b43a31a3b54eee2e6e32ce"
+checksum = "e1d1c4ba43f80542cf63a0a6ed3134629ae73e8ab51e4b765a67f3aa062eb433"
 dependencies = [
  "arrayvec",
  "cfg_aliases 0.1.1",
@@ -2690,9 +2729,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "22.0.0"
+version = "22.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0f191908a21968991463fcf3b42cb6c9648c0fb7fa301b8fc733bc21a9ed9bd"
+checksum = "0348c840d1051b8e86c3bcd31206080c5e71e5933dabd79be1ce732b0b2f089a"
 dependencies = [
  "arrayvec",
  "bit-vec",

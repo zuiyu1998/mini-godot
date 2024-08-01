@@ -7,8 +7,9 @@ edition = "2021"
 mini-core = { path = "../mini-core" }
 mini-resource = { path = "../mini-resource" }
 mini-task = { path = "../mini-task" }
+mini-window = { path = "../mini-window" }
+mini-winit = { path = "../mini-winit" }
+mini-renderer = { path = "../mini-renderer" }
 
-winit = { version = "0.30.4" }
-wgpu = { version = "22.0" }
 
 image = { version = "0.25" }

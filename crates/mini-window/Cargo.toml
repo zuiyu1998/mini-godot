@@ -1,9 +1,10 @@
 [package]
-name = "mini-renderer"
+name = "mini-window"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-wgpu = { version = "22.0" }
 mini-core = { path = "../mini-core" }
-mini-window = { path = "../mini-window" }
+mini-math = { path = "../mini-math" }
+
+raw-window-handle = "0.6"
