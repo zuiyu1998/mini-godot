@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 mini-window = { path = "../mini-window" }
+mini-core = { path = "../mini-core" }
 winit = { version = "0.30.4" }

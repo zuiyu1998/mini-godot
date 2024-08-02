@@ -1,7 +1,8 @@
-use crate::window_wrapper::RawHandleWrapperHolder;
 use mini_math::UVec2;
 
-#[derive(Debug)]
+use crate::prelude::{RawHandleWrapper, RawHandleWrapperHolder};
+
+#[derive(Debug, Clone)]
 pub struct WindowResolution {
     /// Width of the window in physical pixels.
     physical_width: u32,
@@ -32,9 +33,26 @@ impl Default for WindowResolution {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct Window {
     pub resolution: WindowResolution,
+    pub title: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ErasedWindow {
+    pub raw_handle_wrapper: RawHandleWrapper,
+    pub raw_handle_wrapper_holder: RawHandleWrapperHolder,
+    pub window: Window,
+}
+
+impl Default for Window {
+    fn default() -> Self {
+        Window {
+            resolution: Default::default(),
+            title: "App".to_string(),
+        }
+    }
 }
 
 impl Window {
@@ -43,8 +61,18 @@ impl Window {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct PrimaryWindow {
-    pub handle: RawHandleWrapperHolder,
-    pub window: Window,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppLifecycle {
+    /// The application is not started yet.
+    Idle,
+    /// The application is running.
+    Running,
+    /// The application is going to be suspended.
+    /// Applications have one frame to react to this event before being paused in the background.
+    WillSuspend,
+    /// The application was suspended.
+    Suspended,
+    /// The application is going to be resumed.
+    /// Applications have one extra frame to react to this event before being fully resumed.
+    WillResume,
 }

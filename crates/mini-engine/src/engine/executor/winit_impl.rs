@@ -1,28 +1,23 @@
-use std::sync::Arc;
-
 use crate::engine::Engine;
 
-use mini_core::parking_lot::Mutex;
+use mini_window::window::{AppLifecycle, Window};
 use mini_winit::{
-    windows::Winitwindows,
-    winit::{
-        self, application::ApplicationHandler, event::WindowEvent, event_loop::ControlFlow,
-        window::Window,
-    },
+    windows::WinitWindows,
+    winit::{self, application::ApplicationHandler, event::WindowEvent, event_loop::ControlFlow},
 };
-
-use mini_window::window_wrapper::{RawHandleWrapper, RawHandleWrapperHolder, WindowWrapper};
 
 pub struct WinitExecutor {
     pub engine: Engine,
-    pub windows: Winitwindows,
+    pub windows: WinitWindows,
+    lifecycle: AppLifecycle,
 }
 
 impl WinitExecutor {
     pub fn new() -> Self {
         WinitExecutor {
             engine: Engine::from_params(),
-            windows: Winitwindows::default(),
+            windows: WinitWindows::default(),
+            lifecycle: AppLifecycle::Idle,
         }
     }
 }
@@ -30,27 +25,43 @@ impl WinitExecutor {
 impl WinitExecutor {}
 
 impl ApplicationHandler for WinitExecutor {
-    fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+    fn new_events(
+        &mut self,
+        event_loop: &winit::event_loop::ActiveEventLoop,
+        _cause: winit::event::StartCause,
+    ) {
+        if self.lifecycle == AppLifecycle::Idle {
+            self.windows.create_window(event_loop, Window::default());
+        }
+    }
+
+    fn resumed(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.lifecycle = AppLifecycle::WillResume;
+    }
+
+    fn about_to_wait(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        let winit_window_attributes = Window::default_attributes();
-        let window = event_loop.create_window(winit_window_attributes).unwrap();
+        if self.lifecycle == AppLifecycle::WillResume {
+            self.engine.graphics_context.initialize_graphics_context(
+                &self
+                    .windows
+                    .windows
+                    .get(&self.windows.primary.unwrap())
+                    .unwrap()
+                    .erased_window,
+            );
 
-        let window_handle = RawHandleWrapperHolder(Arc::new(Mutex::new(Some(
-            RawHandleWrapper::new(&WindowWrapper::new(window)).unwrap(),
-        ))));
+            self.lifecycle = AppLifecycle::Running;
+        }
 
-        self.windows.primary.handle = window_handle;
-
-        self.engine
-            .graphics_context
-            .initialize_graphics_context(&self.windows.primary);
+        self.engine.update();
     }
 
     fn window_event(
         &mut self,
         event_loop: &winit::event_loop::ActiveEventLoop,
-        window_id: winit::window::WindowId,
+        _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
         match event {

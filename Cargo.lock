@@ -1307,6 +1307,7 @@ dependencies = [
 name = "mini-winit"
 version = "0.1.0"
 dependencies = [
+ "mini-core",
  "mini-window",
  "winit",
 ]

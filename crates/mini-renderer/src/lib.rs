@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use mini_core::{futures_lite, parking_lot::Mutex};
-use mini_window::window::PrimaryWindow;
+use mini_window::window::ErasedWindow;
 use wgpu::{Device, DeviceDescriptor, Instance, MemoryHints, Queue, Surface, SurfaceTargetUnsafe};
 
 pub struct InitializedGraphicsContext {
@@ -75,12 +75,12 @@ type FutureRendererResources = Arc<
 >;
 
 impl GraphicsContext {
-    pub fn initialize_graphics_context(&mut self, window: &PrimaryWindow) {
+    pub fn initialize_graphics_context(&mut self, window: &ErasedWindow) {
         let size = window.window.physical_size();
 
         let future_renderer_resources: FutureRendererResources = Arc::new(Mutex::new(None));
 
-        let window_clone = window.handle.clone();
+        let window_clone = window.raw_handle_wrapper_holder.clone();
         let future_renderer_resources_clone = future_renderer_resources.clone();
 
         let async_renderer = async move {
