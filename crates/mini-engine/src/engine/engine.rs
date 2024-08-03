@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use mini_renderer::GraphicsContext;
+use mini_renderer::prelude::GraphicsContext;
 use mini_resource::prelude::ResourceManager;
 use mini_task::TaskPool;
 

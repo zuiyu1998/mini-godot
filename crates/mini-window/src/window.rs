@@ -2,6 +2,15 @@ use mini_math::UVec2;
 
 use crate::prelude::{RawHandleWrapper, RawHandleWrapperHolder};
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Copy)]
+pub struct WindowId(u64);
+
+impl WindowId {
+    pub fn new(id: u64) -> Self {
+        WindowId(id)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct WindowResolution {
     /// Width of the window in physical pixels.
@@ -44,6 +53,7 @@ pub struct ErasedWindow {
     pub raw_handle_wrapper: RawHandleWrapper,
     pub raw_handle_wrapper_holder: RawHandleWrapperHolder,
     pub window: Window,
+    pub id: WindowId,
 }
 
 impl Default for Window {

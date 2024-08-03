@@ -2,13 +2,10 @@ use std::{collections::HashMap, sync::Arc};
 
 use mini_core::parking_lot::Mutex;
 use mini_window::{
-    window::{ErasedWindow, Window},
+    window::{ErasedWindow, Window, WindowId},
     window_wrapper::{RawHandleWrapper, RawHandleWrapperHolder, WindowWrapper},
 };
-use winit::{
-    event_loop::ActiveEventLoop,
-    window::{Window as RawWinitWindow, WindowId},
-};
+use winit::{event_loop::ActiveEventLoop, window::Window as RawWinitWindow};
 
 #[derive(Debug)]
 pub struct WinitWindow {
@@ -27,7 +24,7 @@ impl WinitWindows {
     pub fn create_window(&mut self, event_loop: &ActiveEventLoop, window: Window) {
         let winit_window_attributes = RawWinitWindow::default_attributes();
         let winit_window = event_loop.create_window(winit_window_attributes).unwrap();
-        let window_id = winit_window.id();
+        let window_id = WindowId::new(winit_window.id().into());
 
         let window_wrapper = WindowWrapper::new(winit_window);
 
@@ -42,6 +39,7 @@ impl WinitWindows {
                 raw_handle_wrapper,
                 raw_handle_wrapper_holder,
                 window,
+                id: window_id,
             },
         };
 

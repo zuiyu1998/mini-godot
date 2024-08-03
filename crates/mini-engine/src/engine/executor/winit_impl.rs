@@ -43,7 +43,7 @@ impl ApplicationHandler for WinitExecutor {
         event_loop.set_control_flow(ControlFlow::Wait);
 
         if self.lifecycle == AppLifecycle::WillResume {
-            self.engine.graphics_context.initialize_graphics_context(
+            self.engine.graphics_context.initialize_gpu_context(
                 &self
                     .windows
                     .windows
@@ -51,6 +51,16 @@ impl ApplicationHandler for WinitExecutor {
                     .unwrap()
                     .erased_window,
             );
+
+            for window in self.windows.windows.values() {
+                self.engine
+                    .graphics_context
+                    .initialize_windows(&window.erased_window);
+            }
+
+            self.engine
+                .graphics_context
+                .add_render_pipeline(&self.windows.primary.unwrap());
 
             self.lifecycle = AppLifecycle::Running;
         }
