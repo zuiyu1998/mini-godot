@@ -1,3 +1,4 @@
+mod cache;
 mod graphics_context;
 mod renderer;
 mod surface_data;

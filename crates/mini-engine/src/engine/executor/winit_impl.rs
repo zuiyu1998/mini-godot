@@ -10,6 +10,7 @@ pub struct WinitExecutor {
     pub engine: Engine,
     pub windows: WinitWindows,
     lifecycle: AppLifecycle,
+    pub is_initialize: bool,
 }
 
 impl WinitExecutor {
@@ -18,6 +19,7 @@ impl WinitExecutor {
             engine: Engine::from_params(),
             windows: WinitWindows::default(),
             lifecycle: AppLifecycle::Idle,
+            is_initialize: false,
         }
     }
 }
@@ -43,14 +45,18 @@ impl ApplicationHandler for WinitExecutor {
         event_loop.set_control_flow(ControlFlow::Wait);
 
         if self.lifecycle == AppLifecycle::WillResume {
-            self.engine.graphics_context.initialize_gpu_context(
-                &self
-                    .windows
-                    .windows
-                    .get(&self.windows.primary.unwrap())
-                    .unwrap()
-                    .erased_window,
-            );
+            if !self.is_initialize {
+                self.is_initialize = true;
+
+                self.engine.initialize(
+                    &self
+                        .windows
+                        .windows
+                        .get(&self.windows.primary.unwrap())
+                        .unwrap()
+                        .erased_window,
+                );
+            }
 
             for window in self.windows.windows.values() {
                 self.engine

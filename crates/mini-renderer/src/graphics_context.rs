@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use mini_core::{futures_lite, parking_lot::Mutex};
+use mini_resource::prelude::ResourceManager;
 use mini_window::window::{ErasedWindow, WindowId};
 
 use crate::{
@@ -19,7 +20,7 @@ pub struct InitializedGraphicsContext {
 impl InitializedGraphicsContext {
     pub fn render(&mut self) {
         for render_contex in self.window_surface_datas.values_mut() {
-            render_contex.render(&render_context);
+            render_contex.render(&self.renderer);
         }
     }
 
@@ -98,7 +99,14 @@ type FutureRendererResources =
     Arc<Mutex<Option<(RenderDevice, RenderQueue, RenderInstance, RenderAdapter)>>>;
 
 impl GraphicsContext {
-    pub fn initialize_gpu_context(&mut self, window: &ErasedWindow) {
+    pub fn initialize(&mut self, window: &ErasedWindow, resource_manager: &ResourceManager) {
+        self.initialize_graphics_context(window);
+        self.build_resource_manager(resource_manager);
+    }
+
+    pub fn build_resource_manager(&mut self, _resource_manager: &ResourceManager) {}
+
+    fn initialize_graphics_context(&mut self, window: &ErasedWindow) {
         let future_renderer_resources: FutureRendererResources = Arc::new(Mutex::new(None));
 
         let window_clone = window.raw_handle_wrapper_holder.clone();

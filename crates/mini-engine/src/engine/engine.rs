@@ -3,6 +3,7 @@ use std::sync::Arc;
 use mini_renderer::prelude::{GraphicsContext, ImageLoader};
 use mini_resource::prelude::ResourceManager;
 use mini_task::TaskPool;
+use mini_window::prelude::ErasedWindow;
 
 pub struct Engine {
     resource_manager: ResourceManager,
@@ -10,6 +11,11 @@ pub struct Engine {
 }
 
 impl Engine {
+    pub fn initialize(&mut self, window: &ErasedWindow) {
+        self.graphics_context
+            .initialize(&window, &self.resource_manager);
+    }
+
     pub fn from_params() -> Self {
         let task_pool = Arc::new(TaskPool::new());
         let resource_manager = ResourceManager::new(task_pool);
