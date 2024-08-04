@@ -6,7 +6,7 @@ use std::{
 use mini_window::window::{ErasedWindow, WindowId};
 use wgpu::{Surface, SurfaceConfiguration, SurfaceTargetUnsafe};
 
-use crate::{prelude::RenderContext, renderer::Renderer, wrapper::WgpuWrapper};
+use crate::{renderer::Renderer, wrapper::WgpuWrapper};
 
 pub struct SurfaceData {
     //画板
@@ -15,20 +15,20 @@ pub struct SurfaceData {
 }
 
 impl SurfaceData {
-    pub fn render(&mut self, render_context: &RenderContext) {
+    pub fn render(&mut self, renderer: &Renderer) {
         let output = self.surface.get_current_texture().unwrap();
 
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let mut encoder = render_context
-            .renderer
-            .device
-            .wgpu_device()
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
+        let mut encoder =
+            renderer
+                .device
+                .wgpu_device()
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Render Encoder"),
+                });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -51,14 +51,11 @@ impl SurfaceData {
                 timestamp_writes: None,
             });
 
-            render_pass.set_pipeline(&render_context.renderer.render_pipeline.as_ref().unwrap()); // 2.
+            render_pass.set_pipeline(&renderer.render_pipeline.as_ref().unwrap()); // 2.
             render_pass.draw(0..3, 0..1); // 3.
         }
 
-        render_context
-            .renderer
-            .queue
-            .submit(std::iter::once(encoder.finish()));
+        renderer.queue.submit(std::iter::once(encoder.finish()));
         output.present();
     }
 

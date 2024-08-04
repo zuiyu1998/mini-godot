@@ -16,16 +16,8 @@ pub struct InitializedGraphicsContext {
     renderer: Renderer,
 }
 
-pub struct RenderContext<'a> {
-    pub renderer: &'a Renderer,
-}
-
 impl InitializedGraphicsContext {
     pub fn render(&mut self) {
-        let render_context = RenderContext {
-            renderer: &self.renderer,
-        };
-
         for render_contex in self.window_surface_datas.values_mut() {
             render_contex.render(&render_context);
         }
@@ -99,7 +91,6 @@ impl InitializedGraphicsContext {
 
 pub enum GraphicsContext {
     Initialized(InitializedGraphicsContext),
-
     Uninitialized,
 }
 

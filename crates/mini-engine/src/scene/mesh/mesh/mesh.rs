@@ -4,6 +4,7 @@ use mini_core::prelude::EnumVariantMeta;
 use mini_renderer::wgpu::{PrimitiveTopology, VertexFormat};
 
 ///网格
+#[derive(Debug, Clone)]
 pub struct Mesh {
     primitive_topology: PrimitiveTopology,
 
