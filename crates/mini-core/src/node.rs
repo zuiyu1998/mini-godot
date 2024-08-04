@@ -1,4 +1,4 @@
-use mini_core::downcast::Downcast;
+use crate::downcast::Downcast;
 
 pub trait NodeTrait {}
 

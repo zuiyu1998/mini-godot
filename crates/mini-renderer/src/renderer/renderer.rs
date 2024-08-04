@@ -4,7 +4,6 @@ use super::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue};
 
 pub struct Renderer {
     pub render_pipeline: Option<RenderPipeline>,
-
     pub device: RenderDevice,
     pub queue: RenderQueue,
     pub instance: RenderInstance,
