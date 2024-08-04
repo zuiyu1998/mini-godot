@@ -4,6 +4,8 @@ mod surface_data;
 mod texture;
 mod wrapper;
 
+pub use wgpu;
+
 pub mod prelude {
     pub use crate::graphics_context::*;
     pub use crate::surface_data::*;
