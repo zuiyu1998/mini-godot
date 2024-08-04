@@ -1,4 +1,4 @@
-use std::{fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use std::{error::Error, fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use mini_core::{downcast::Downcast, prelude::TypeUuidProvider, uuid::Uuid};
 
@@ -41,7 +41,7 @@ impl LoaderPayload {
 pub trait ResourceLoader: 'static + Send + Sync {
     type ResourceData: ResourceData;
     type Settings: ResourceSettings + Default + Clone;
-    type Error: ResourceLoadError;
+    type Error: Error;
 
     //支持的文件
     fn extensions(&self) -> &[&str];

@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use mini_renderer::prelude::GraphicsContext;
+use mini_renderer::prelude::{GraphicsContext, ImageLoader};
 use mini_resource::prelude::ResourceManager;
 use mini_task::TaskPool;
-
-use crate::prelude::build_manager;
 
 pub struct Engine {
     resource_manager: ResourceManager,
@@ -27,4 +25,8 @@ impl Engine {
     pub fn update(&mut self) {
         self.graphics_context.render();
     }
+}
+
+fn build_manager(resource_manager: &ResourceManager) {
+    resource_manager.state().add_loader(ImageLoader::default());
 }

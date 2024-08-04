@@ -1,6 +1,7 @@
 pub mod type_uuid;
 pub mod utils;
 
+pub use bitflags;
 pub use bytemuck;
 pub use downcast_rs as downcast;
 pub use futures_lite;

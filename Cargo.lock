@@ -1220,6 +1220,7 @@ dependencies = [
 name = "mini-core"
 version = "0.1.0"
 dependencies = [
+ "bitflags 2.6.0",
  "bytemuck",
  "downcast-rs",
  "futures",
@@ -1270,6 +1271,7 @@ version = "0.1.0"
 name = "mini-renderer"
 version = "0.1.0"
 dependencies = [
+ "image",
  "mini-core",
  "mini-resource",
  "mini-window",

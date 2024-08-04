@@ -17,3 +17,4 @@ downcast-rs = "1.2.1"
 
 thiserror = { version = "1.0" }
 bytemuck = "1.7"
+bitflags = { version = "2.6" }

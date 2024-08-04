@@ -10,7 +10,7 @@ pub trait ResourceMetaDyn: Downcast + Send + Sync {
 
 pub trait ResourceSettings: 'static + Send + Downcast + Sync {}
 
-impl ResourceSettings for () {}
+impl<T> ResourceSettings for T where T: 'static + Send + Downcast + Sync {}
 
 impl dyn ResourceSettings {
     pub fn is<T: ResourceSettings>(&self) -> bool {

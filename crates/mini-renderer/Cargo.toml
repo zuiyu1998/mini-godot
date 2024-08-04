@@ -8,3 +8,4 @@ wgpu = { version = "22.0" }
 mini-core = { path = "../mini-core" }
 mini-window = { path = "../mini-window" }
 mini-resource = { path = "../mini-resource" }
+image = { version = "0.25" }

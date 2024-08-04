@@ -7,5 +7,6 @@ mod wrapper;
 pub mod prelude {
     pub use crate::graphics_context::*;
     pub use crate::surface_data::*;
+    pub use crate::texture::prelude::*;
     pub use crate::wrapper::*;
 }
