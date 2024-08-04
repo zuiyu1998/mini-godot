@@ -1,5 +1,6 @@
 mod deref;
 mod deref_mut;
+mod enum_variant_meta;
 mod uuid;
 
 use proc_macro::TokenStream;
@@ -21,4 +22,10 @@ pub fn type_deref(input: TokenStream) -> TokenStream {
 pub fn type_deref_mut(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     TokenStream::from(deref_mut::impl_deref_mut(ast))
+}
+
+#[proc_macro_derive(EnumVariantMeta)]
+pub fn type_enum_variant_meta(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    TokenStream::from(enum_variant_meta::impl_enum_variant_meta(ast))
 }

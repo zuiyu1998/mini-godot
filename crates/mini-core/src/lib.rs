@@ -17,5 +17,5 @@ pub mod prelude {
     pub use crate::type_uuid::*;
     pub use crate::utils::*;
 
-    pub use mini_core_macros::{Deref, DerefMut};
+    pub use mini_core_macros::{Deref, DerefMut, EnumVariantMeta};
 }
