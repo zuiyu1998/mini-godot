@@ -1,12 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::{Deref, DerefMut},
+};
 
 use mini_window::window::{ErasedWindow, WindowId};
 use wgpu::{Surface, SurfaceConfiguration, SurfaceTargetUnsafe};
 
-use crate::{
-    prelude::{GpuContext, RenderContext},
-    wrapper::WgpuWrapper,
-};
+use crate::{prelude::RenderContext, renderer::Renderer, wrapper::WgpuWrapper};
 
 pub struct SurfaceData {
     //画板
@@ -23,7 +23,7 @@ impl SurfaceData {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = render_context
-            .gpu_context
+            .renderer
             .device
             .wgpu_device()
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -56,13 +56,13 @@ impl SurfaceData {
         }
 
         render_context
-            .gpu_context
+            .renderer
             .queue
             .submit(std::iter::once(encoder.finish()));
         output.present();
     }
 
-    pub fn initialize_surface_data(gpu_context: &GpuContext, window: &ErasedWindow) -> Self {
+    pub fn initialize_surface_data(renderer: &Renderer, window: &ErasedWindow) -> Self {
         let size = window.window.physical_size();
 
         let surface_target = SurfaceTargetUnsafe::RawHandle {
@@ -74,12 +74,12 @@ impl SurfaceData {
         let surface = unsafe {
             // NOTE: On some OSes this MUST be called from the main thread.
             // As of wgpu 0.15, only fallible if the given window is a HTML canvas and obtaining a WebGPU or WebGL2 context fails.
-            gpu_context
+            renderer
                 .instance
                 .create_surface_unsafe(surface_target)
                 .expect("Failed to create wgpu surface")
         };
-        let caps = surface.get_capabilities(&gpu_context.adapter);
+        let caps = surface.get_capabilities(&renderer.adapter);
 
         let surface_format = caps
             .formats
@@ -99,7 +99,7 @@ impl SurfaceData {
             desired_maximum_frame_latency: 2,
         };
 
-        surface.configure(&gpu_context.device.wgpu_device(), &config);
+        surface.configure(&renderer.device.wgpu_device(), &config);
 
         Self {
             surface: WgpuWrapper::new(surface),
@@ -110,17 +110,31 @@ impl SurfaceData {
 
 #[derive(Default)]
 pub struct WindowSurfaceDatas {
-    pub surface_datas: HashMap<WindowId, SurfaceData>,
+    surface_datas: HashMap<WindowId, SurfaceData>,
     initialized_windows: HashSet<WindowId>,
 }
 
+impl Deref for WindowSurfaceDatas {
+    type Target = HashMap<WindowId, SurfaceData>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.surface_datas
+    }
+}
+
+impl DerefMut for WindowSurfaceDatas {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.surface_datas
+    }
+}
+
 impl WindowSurfaceDatas {
-    pub fn initialize_window(&mut self, gpu_context: &GpuContext, window: &ErasedWindow) {
+    pub fn initialize_window(&mut self, renderer: &Renderer, window: &ErasedWindow) {
         if self.initialized_windows.contains(&window.id) {
             return;
         }
 
-        let surface_data = SurfaceData::initialize_surface_data(gpu_context, window);
+        let surface_data = SurfaceData::initialize_surface_data(renderer, window);
 
         self.surface_datas.insert(window.id, surface_data);
 

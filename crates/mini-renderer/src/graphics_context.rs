@@ -5,75 +5,51 @@ use mini_window::window::{ErasedWindow, WindowId};
 
 use crate::{
     prelude::WindowSurfaceDatas,
-    wrapper::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, WgpuWrapper},
+    renderer::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, Renderer},
+    wrapper::WgpuWrapper,
 };
 
-use wgpu::{DeviceDescriptor, Instance, MemoryHints, RenderPipeline, Surface, SurfaceTargetUnsafe};
+use wgpu::{DeviceDescriptor, Instance, MemoryHints, Surface, SurfaceTargetUnsafe};
 
 pub struct InitializedGraphicsContext {
-    gpu_context: GpuContext,
     window_surface_datas: WindowSurfaceDatas,
     renderer: Renderer,
 }
 
-#[derive(Default)]
-pub struct Renderer {
-    pub render_pipeline: Option<RenderPipeline>,
-}
-
 pub struct RenderContext<'a> {
-    pub gpu_context: &'a GpuContext,
     pub renderer: &'a Renderer,
-}
-
-#[derive(Clone)]
-pub struct GpuContext {
-    pub device: RenderDevice,
-    pub queue: RenderQueue,
-    pub instance: RenderInstance,
-    pub adapter: RenderAdapter,
 }
 
 impl InitializedGraphicsContext {
     pub fn render(&mut self) {
         let render_context = RenderContext {
-            gpu_context: &self.gpu_context,
             renderer: &self.renderer,
         };
 
-        for render_contex in self.window_surface_datas.surface_datas.values_mut() {
+        for render_contex in self.window_surface_datas.values_mut() {
             render_contex.render(&render_context);
         }
     }
 
     pub fn add_render_pipeline(&mut self, window_id: &WindowId) {
-        let surface_data = self
-            .window_surface_datas
-            .surface_datas
-            .get(window_id)
-            .unwrap();
+        let surface_data = self.window_surface_datas.get(window_id).unwrap();
 
         let shader = self
-            .gpu_context
+            .renderer
             .device
             .wgpu_device()
             .create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
-        let render_pipeline_layout = self
-            .gpu_context
-            .device
-            .wgpu_device()
-            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let render_pipeline_layout = self.renderer.device.wgpu_device().create_pipeline_layout(
+            &wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[],
                 push_constant_ranges: &[],
-            });
+            },
+        );
 
-        let render_pipeline = self
-            .gpu_context
-            .device
-            .wgpu_device()
-            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let render_pipeline = self.renderer.device.wgpu_device().create_render_pipeline(
+            &wgpu::RenderPipelineDescriptor {
                 label: Some("Render Pipeline"),
                 layout: Some(&render_pipeline_layout),
                 vertex: wgpu::VertexState {
@@ -114,7 +90,8 @@ impl InitializedGraphicsContext {
                 },
                 multiview: None, // 5.
                 cache: None,     // 6.
-            });
+            },
+        );
 
         self.renderer.render_pipeline = Some(render_pipeline);
     }
@@ -198,14 +175,8 @@ impl GraphicsContext {
         let (device, queue, instance, adapter) = future_renderer_resources.lock().take().unwrap();
 
         *self = GraphicsContext::Initialized(InitializedGraphicsContext {
-            gpu_context: GpuContext {
-                device,
-                queue,
-                instance,
-                adapter,
-            },
             window_surface_datas: Default::default(),
-            renderer: Default::default(),
+            renderer: Renderer::new(device, queue, instance, adapter),
         })
     }
 
@@ -213,7 +184,7 @@ impl GraphicsContext {
         if let GraphicsContext::Initialized(context) = self {
             context
                 .window_surface_datas
-                .initialize_window(&context.gpu_context, window)
+                .initialize_window(&context.renderer, window)
         }
     }
 

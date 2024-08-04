@@ -18,6 +18,8 @@ use mini_core::{
 
 use crate::loader::{LoadError, ResourceLoadError};
 
+pub use mini_resource_macros::ResourceData;
+
 impl<T> ResourceLoadError for T where T: 'static + Debug + Send + Sync {}
 
 pub trait ResourceData: TypeUuidProvider + 'static + Send + Sync + Debug {}
