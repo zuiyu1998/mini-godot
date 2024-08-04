@@ -13,8 +13,9 @@ futures = { version = "0.3.17", features = ["thread-pool"] }
 uuid = { version = "1", features = ["v4"] }
 rustc-hash = { version = "2.0.0" }
 futures-lite = { version = "2.3.0" }
+futures-io = { version = "0.3.20" }
+stackfuture = { version = "0.3" }
 downcast-rs = "1.2.1"
-
 thiserror = { version = "1.0" }
 bytemuck = "1.7"
 bitflags = { version = "2.6" }

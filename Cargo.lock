@@ -1254,11 +1254,13 @@ dependencies = [
  "bytemuck",
  "downcast-rs",
  "futures",
+ "futures-io",
  "futures-lite",
  "mini-core-macros",
  "num-traits",
  "parking_lot",
  "rustc-hash 2.0.0",
+ "stackfuture",
  "thiserror",
  "uuid",
 ]
@@ -2362,6 +2364,12 @@ checksum = "eda41003dc44290527a59b13432d4a0379379fa074b70174882adfbdfd917844"
 dependencies = [
  "bitflags 2.6.0",
 ]
+
+[[package]]
+name = "stackfuture"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6eae92052b72ef70dafa16eddbabffc77e5ca3574be2f7bc1127b36f0a7ad7f2"
 
 [[package]]
 name = "static_assertions"

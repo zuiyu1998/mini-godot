@@ -1,9 +1,29 @@
-use std::{future::Future, io::Error as IoError, path::PathBuf, pin::Pin};
+use std::{
+    future::Future,
+    io::Error as IoError,
+    path::{Path, PathBuf},
+    pin::Pin,
+};
 use thiserror::Error;
+
+mod reader;
+mod writer;
 
 mod fs;
 
+pub use reader::*;
+pub use writer::*;
+
 pub type ResourceIoFuture<'a, V> = Pin<Box<dyn Future<Output = V> + Send + 'a>>;
+
+/// Appends `.meta` to the given path.
+pub(crate) fn get_meta_path(path: &Path) -> PathBuf {
+    let mut meta_path = path.to_path_buf();
+    let mut extension = path.extension().unwrap_or_default().to_os_string();
+    extension.push(".meta");
+    meta_path.set_extension(extension);
+    meta_path
+}
 
 #[derive(Debug, Error)]
 pub enum FileLoadError {
