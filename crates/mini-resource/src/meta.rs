@@ -16,6 +16,10 @@ impl dyn ResourceSettings {
     pub fn is<T: ResourceSettings>(&self) -> bool {
         self.as_any().is::<T>()
     }
+
+    pub fn downcast<T: ResourceSettings>(&self) -> Option<&T> {
+        self.as_any().downcast_ref::<T>()
+    }
 }
 
 #[derive(Default)]

@@ -3,7 +3,6 @@ use std::{
     future::Future,
     marker::PhantomData,
     ops::{Deref, DerefMut},
-    path::PathBuf,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll, Waker},
@@ -16,7 +15,10 @@ use mini_core::{
     uuid::{uuid, Uuid},
 };
 
-use crate::loader::{LoadError, ResourceLoadError};
+use crate::{
+    error::{LoadError, ResourceLoadError},
+    io::AssetPath,
+};
 
 pub use mini_resource_macros::ResourceData;
 
@@ -41,6 +43,17 @@ where
 {
     pub untyped: UntypedResource,
     pub type_marker: PhantomData<T>,
+}
+
+impl<T: ResourceData> Resource<T> {
+    pub fn new(untyped: UntypedResource) -> Self {
+        assert_eq!(untyped.type_uuid(), T::type_uuid());
+
+        Self {
+            untyped,
+            type_marker: PhantomData,
+        }
+    }
 }
 
 #[derive(Debug, Clone, TypeUuidProvider)]
@@ -137,7 +150,7 @@ pub struct ResourceHeader {
 pub enum ResourceKind {
     #[default]
     Embedded,
-    External(PathBuf),
+    External(AssetPath<'static>),
 }
 
 impl ResourceKind {
@@ -159,7 +172,7 @@ impl Display for ResourceKind {
                 write!(f, "Embedded")
             }
             ResourceKind::External(path) => {
-                write!(f, "External ({})", path.display())
+                write!(f, "External ({})", path)
             }
         }
     }

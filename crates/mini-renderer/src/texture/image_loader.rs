@@ -1,8 +1,6 @@
-use std::{path::PathBuf, sync::Arc};
-
 use super::prelude::{CompressedImageFormats, Image, ImageFormat, ImageSampler, ImageType};
 use mini_core::thiserror::{self, Error};
-use mini_resource::prelude::{FileLoadError, ResourceIo, ResourceLoader};
+use mini_resource::prelude::{LoadContext, Reader, ResourceError, ResourceLoader};
 
 pub(crate) const IMG_FILE_EXTENSIONS: &[&str] = &["png"];
 
@@ -21,10 +19,12 @@ pub struct ImageLoaderSettings {
 
 #[derive(Debug, Error)]
 pub enum ImageLoaderError {
-    #[error("Could load image: {0}")]
-    Io(#[from] FileLoadError),
+    #[error("Resource error: {0}")]
+    ResourceError(#[from] ResourceError),
     #[error("Could not load texture file: {0}")]
     FileTexture(#[from] FileTextureError),
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -92,29 +92,31 @@ impl ResourceLoader for ImageLoader {
     type ResourceData = Image;
     type Settings = ImageLoaderSettings;
     type Error = ImageLoaderError;
-    async fn load(
-        &self,
-        path: PathBuf,
-        io: Arc<dyn ResourceIo>,
-        settings: &Self::Settings,
+    async fn load<'a>(
+        &'a self,
+        reader: &'a mut dyn Reader,
+        settings: &'a Self::Settings,
+        load_context: &'a mut LoadContext<'_>,
     ) -> Result<Image, Self::Error> {
-        let mut bytes = io.load_file(&path).await?;
+        let mut bytes = Vec::new();
+
+        reader.read_to_end(&mut bytes).await?;
         let image_type = match settings.format {
             ImageFormatSetting::FromExtension => {
                 // use the file extension for the image type
-                let ext = path.extension().unwrap().to_str().unwrap();
+                let ext = load_context.path().extension().unwrap().to_str().unwrap();
                 ImageType::Extension(ext)
             }
             ImageFormatSetting::Format(format) => ImageType::Format(format),
             ImageFormatSetting::Guess => {
                 let format = image::guess_format(&bytes).map_err(|err| FileTextureError {
                     error: err.into(),
-                    path: format!("{}", path.display()),
+                    path: format!("{}", load_context.path().display()),
                 })?;
                 ImageType::Format(ImageFormat::from_image_crate_format(format).ok_or_else(
                     || FileTextureError {
                         error: TextureError::UnsupportedTextureFormat(format!("{format:?}")),
-                        path: format!("{}", path.display()),
+                        path: format!("{}", load_context.path().display()),
                     },
                 )?)
             }
@@ -128,7 +130,7 @@ impl ResourceLoader for ImageLoader {
         )
         .map_err(|err| FileTextureError {
             error: err,
-            path: format!("{}", path.display()),
+            path: format!("{}", load_context.path().display()),
         })?)
     }
 

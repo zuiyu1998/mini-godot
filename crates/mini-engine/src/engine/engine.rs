@@ -34,5 +34,5 @@ impl Engine {
 }
 
 fn build_manager(resource_manager: &ResourceManager) {
-    resource_manager.state().add_loader(ImageLoader::default());
+    resource_manager.add_loader(ImageLoader::default());
 }

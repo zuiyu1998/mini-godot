@@ -1,57 +1,106 @@
-use std::{error::Error, fmt::Debug, future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use std::{error::Error, path::Path, sync::Arc};
 
-use mini_core::{downcast::Downcast, prelude::TypeUuidProvider, uuid::Uuid};
+use mini_core::{
+    downcast::Downcast,
+    future::{BoxedFuture, ConditionalSendFuture},
+    prelude::TypeUuidProvider,
+    uuid::Uuid,
+};
 
 use crate::{
-    io::ResourceIo,
+    io::{AssetPath, Reader},
+    manager::ResourceManager,
     meta::{ResourceMeta, ResourceMetaDyn, ResourceSettings},
+    prelude::Resource,
     resource::{ErasedResourceData, ResourceData},
 };
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ResourceLoaders {
-    loaders: Vec<Box<dyn ErasedResourceLoader>>,
+    loaders: Vec<Arc<dyn ErasedResourceLoader>>,
 }
 
 impl ResourceLoaders {
     pub fn push<T: ResourceLoader>(&mut self, loader: T) {
-        self.loaders.push(Box::new(loader));
+        self.loaders.push(Arc::new(loader));
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &dyn ErasedResourceLoader> {
-        self.loaders.iter().map(|boxed| &**boxed)
+    pub fn find(&self, extension: &str) -> Option<Arc<dyn ErasedResourceLoader>> {
+        self.loaders
+            .iter()
+            .find(|loader| loader.supports_extension(extension))
+            .and_then(|loader| Some(loader.clone()))
     }
 
-    /// Returns an iterator yielding mutable references to "untyped" resource loaders.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut dyn ErasedResourceLoader> {
-        self.loaders.iter_mut().map(|boxed| &mut **boxed)
+    pub fn find_loader(&self, path: &Path) -> Option<Arc<dyn ErasedResourceLoader>> {
+        path.extension()
+            .and_then(|extension| self.find(&extension.to_string_lossy()))
     }
 }
 
-pub type BoxedLoaderFuture = Pin<Box<dyn Future<Output = Result<LoaderPayload, LoadError>> + Send>>;
+pub struct LoadedResource<T: ResourceData> {
+    pub(crate) value: T,
+}
 
-pub struct LoaderPayload(pub(crate) Box<dyn ErasedResourceData>);
+pub struct ErasedLoadedResource {
+    pub(crate) value: Box<dyn ErasedResourceData>,
+}
 
-impl LoaderPayload {
-    pub fn new<T: ResourceData>(data: T) -> Self {
-        Self(Box::new(data))
+impl<R: ResourceData> From<LoadedResource<R>> for ErasedLoadedResource {
+    fn from(resource: LoadedResource<R>) -> Self {
+        ErasedLoadedResource {
+            value: Box::new(resource.value),
+        }
+    }
+}
+
+pub struct LoadContext<'a> {
+    pub(crate) resource_mananger: &'a ResourceManager,
+    asset_path: AssetPath<'static>,
+}
+
+impl<'a> LoadContext<'a> {
+    pub fn path(&self) -> &Path {
+        self.asset_path.path()
+    }
+
+    /// Creates a new [`LoadContext`] instance.
+    pub(crate) fn new(
+        resource_mananger: &'a ResourceManager,
+        asset_path: AssetPath<'static>,
+    ) -> Self {
+        Self {
+            resource_mananger,
+            asset_path,
+        }
+    }
+
+    pub async fn load_sub_resource<'b, R: ResourceData>(
+        &self,
+        path: impl Into<AssetPath<'b>>,
+    ) -> Resource<R> {
+        self.resource_mananger.load_async::<R>(path).await
+    }
+
+    pub fn finish<R: ResourceData>(self, value: R) -> LoadedResource<R> {
+        LoadedResource { value }
     }
 }
 
 pub trait ResourceLoader: 'static + Send + Sync {
     type ResourceData: ResourceData;
     type Settings: ResourceSettings + Default + Clone;
-    type Error: Error;
+    type Error: Error + Send + Sync + 'static;
 
     //支持的文件
     fn extensions(&self) -> &[&str];
 
-    fn load(
-        &self,
-        path: PathBuf,
-        io: Arc<dyn ResourceIo>,
-        settings: &Self::Settings,
-    ) -> impl Future<Output = Result<Self::ResourceData, Self::Error>>;
+    fn load<'a>(
+        &'a self,
+        reader: &'a mut dyn Reader,
+        settings: &'a Self::Settings,
+        load_context: &'a mut LoadContext,
+    ) -> impl ConditionalSendFuture<Output = Result<Self::ResourceData, Self::Error>>;
 
     //用于向上转换
     fn data_type_uuid() -> Uuid {
@@ -59,13 +108,16 @@ pub trait ResourceLoader: 'static + Send + Sync {
     }
 }
 
-pub trait ErasedResourceLoader: 'static + Sync + Downcast {
-    fn load(
-        &self,
-        path: PathBuf,
-        io: Arc<dyn ResourceIo>,
+pub trait ErasedResourceLoader: 'static + Sync + Downcast + Send {
+    fn load<'a>(
+        &'a self,
+        reader: &'a mut dyn Reader,
         meta: Box<dyn ResourceMetaDyn>,
-    ) -> BoxedLoaderFuture;
+        load_context: LoadContext<'a>,
+    ) -> BoxedFuture<
+        'a,
+        Result<ErasedLoadedResource, Box<dyn std::error::Error + Send + Sync + 'static>>,
+    >;
 
     fn default_meta(&self) -> Box<dyn ResourceMetaDyn>;
 
@@ -87,13 +139,26 @@ impl<T> ErasedResourceLoader for T
 where
     T: ResourceLoader,
 {
-    fn load(
-        &self,
-        path: PathBuf,
-        io: Arc<dyn ResourceIo>,
+    fn load<'a>(
+        &'a self,
+        reader: &'a mut dyn Reader,
         meta: Box<dyn ResourceMetaDyn>,
-    ) -> BoxedLoaderFuture {
-        todo!()
+        mut load_context: LoadContext<'a>,
+    ) -> BoxedFuture<
+        'a,
+        Result<ErasedLoadedResource, Box<dyn std::error::Error + Send + Sync + 'static>>,
+    > {
+        Box::pin(async move {
+            let settings = meta
+                .loader_settings()
+                .expect("Loader settings should exist")
+                .downcast::<T::Settings>()
+                .expect("AssetLoader settings should match the loader type");
+            let asset = <T as ResourceLoader>::load(self, reader, settings, &mut load_context)
+                .await
+                .map_err(|e| Box::new(e))?;
+            Ok(load_context.finish(asset).into())
+        })
     }
 
     fn default_meta(&self) -> Box<dyn ResourceMetaDyn> {
@@ -118,15 +183,3 @@ where
         })
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct LoadError(pub Option<Arc<dyn ResourceLoadError>>);
-
-impl LoadError {
-    /// Creates new loading error from a value of the given type.
-    pub fn new<T: ResourceLoadError>(value: T) -> Self {
-        Self(Some(Arc::new(value)))
-    }
-}
-
-pub trait ResourceLoadError: 'static + Debug + Send + Sync {}
