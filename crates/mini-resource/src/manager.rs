@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::{
     error::{LoadError, ResourceError},
-    io::{AssetPath, AssetSourceBuilders, AssetSources, Reader},
+    io::{Reader, ResourcePath, ResourceSourceBuilders, ResourceSources},
     loader::{ErasedResourceLoader, LoadContext, ResourceLoader, ResourceLoaders},
     meta::{ResourceMetaDyn, ResourceMetas},
     resource::{Resource, ResourceData, ResourceKind, ResourceState, UntypedResource},
@@ -22,7 +22,7 @@ impl ResourceManager {
         }
     }
 
-    pub fn load<'a, T>(&self, path: impl Into<AssetPath<'a>>) -> Resource<T>
+    pub fn load<'a, T>(&self, path: impl Into<ResourcePath<'a>>) -> Resource<T>
     where
         T: ResourceData,
     {
@@ -32,7 +32,7 @@ impl ResourceManager {
 
     pub fn load_built_in(
         &self,
-        path: &AssetPath<'_>,
+        path: &ResourcePath<'_>,
         kind: ResourceKind,
     ) -> Result<UntypedResource, Arc<dyn ErasedResourceLoader>> {
         {
@@ -58,10 +58,10 @@ impl ResourceManager {
 
     pub async fn load_async<'a, T: ResourceData>(
         &self,
-        path: impl Into<AssetPath<'a>>,
+        path: impl Into<ResourcePath<'a>>,
     ) -> Resource<T> {
-        let path: AssetPath<'a> = path.into();
-        let path: AssetPath<'static> = path.into_owned();
+        let path: ResourcePath<'a> = path.into();
+        let path: ResourcePath<'static> = path.into_owned();
 
         let kind = ResourceKind::External(path.clone());
         let loader = match self.load_built_in(&path, kind.clone()) {
@@ -79,9 +79,9 @@ impl ResourceManager {
         Resource::new(resource)
     }
 
-    pub fn load_untyped<'a>(&self, path: impl Into<AssetPath<'a>>) -> UntypedResource {
-        let path: AssetPath<'a> = path.into();
-        let path: AssetPath<'static> = path.into_owned();
+    pub fn load_untyped<'a>(&self, path: impl Into<ResourcePath<'a>>) -> UntypedResource {
+        let path: ResourcePath<'a> = path.into();
+        let path: ResourcePath<'static> = path.into_owned();
 
         let kind = ResourceKind::External(path.clone());
 
@@ -102,7 +102,7 @@ impl ResourceManager {
 
     pub async fn get_meta_and_reader<'a>(
         &'a self,
-        path: &'a AssetPath<'_>,
+        path: &'a ResourcePath<'_>,
         loader: &'a Arc<dyn ErasedResourceLoader>,
     ) -> Result<(Box<dyn ResourceMetaDyn>, Box<dyn Reader + 'a>), ResourceError> {
         let value = self.state.get_meta_and_reader(&path, &loader).await?;
@@ -112,7 +112,7 @@ impl ResourceManager {
 
     async fn load_internal(
         &self,
-        path: AssetPath<'static>,
+        path: ResourcePath<'static>,
         resource: UntypedResource,
         loader: Arc<dyn ErasedResourceLoader>,
     ) {
@@ -142,7 +142,7 @@ impl ResourceManager {
 
     fn spawn_loading_task(
         &self,
-        path: AssetPath<'static>,
+        path: ResourcePath<'static>,
         resource: UntypedResource,
         loader: Arc<dyn ErasedResourceLoader>,
         _reload: bool,
@@ -166,9 +166,9 @@ pub struct ResourceManagerState {
     pub loaders: Mutex<ResourceLoaders>,
     pub metas: Mutex<ResourceMetas>,
     //内置资源
-    pub built_in_resources: Mutex<FxHashMap<AssetPath<'static>, UntypedResource>>,
+    pub built_in_resources: Mutex<FxHashMap<ResourcePath<'static>, UntypedResource>>,
 
-    pub asset_sources: AssetSources,
+    pub asset_sources: ResourceSources,
 
     task_pool: Arc<TaskPool>,
 }
@@ -180,7 +180,7 @@ impl ResourceManagerState {
     }
 
     pub(crate) fn new(task_pool: Arc<TaskPool>) -> Self {
-        let mut asset_source_builders = AssetSourceBuilders::default();
+        let mut asset_source_builders = ResourceSourceBuilders::default();
         asset_source_builders.init_default_source("assets");
 
         Self {
@@ -198,7 +198,7 @@ impl ResourceManagerState {
 
     pub async fn get_meta_and_reader<'a>(
         &'a self,
-        path: &'a AssetPath<'_>,
+        path: &'a ResourcePath<'_>,
         loader: &'a Arc<dyn ErasedResourceLoader>,
     ) -> Result<(Box<dyn ResourceMetaDyn>, Box<dyn Reader + 'a>), ResourceError> {
         let source = self.asset_sources.get(path.source())?;

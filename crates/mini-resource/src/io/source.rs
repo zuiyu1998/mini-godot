@@ -6,11 +6,11 @@ use super::{ErasedAssetReader, ErasedAssetWriter};
 
 /// A reference to an "asset source", which maps to an [`AssetReader`] and/or [`AssetWriter`].
 ///
-/// * [`AssetSourceId::Default`] corresponds to "default asset paths" that don't specify a source: `/path/to/asset.png`
-/// * [`AssetSourceId::Name`] corresponds to asset paths that _do_ specify a source: `remote://path/to/asset.png`, where `remote` is the name.
+/// * [`ResourceSourceId::Default`] corresponds to "default asset paths" that don't specify a source: `/path/to/asset.png`
+/// * [`ResourceSourceId::Name`] corresponds to asset paths that _do_ specify a source: `remote://path/to/asset.png`, where `remote` is the name.
 /// 资源路径的映射
 #[derive(Default, Clone, Debug, Eq)]
-pub enum AssetSourceId<'a> {
+pub enum ResourceSourceId<'a> {
     /// The default asset source.
     #[default]
     Default,
@@ -18,83 +18,83 @@ pub enum AssetSourceId<'a> {
     Name(CowArc<'a, str>),
 }
 
-impl<'a> Display for AssetSourceId<'a> {
+impl<'a> Display for ResourceSourceId<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.as_str() {
-            None => write!(f, "AssetSourceId::Default"),
-            Some(v) => write!(f, "AssetSourceId::Name({v})"),
+            None => write!(f, "ResourceSourceId::Default"),
+            Some(v) => write!(f, "ResourceSourceId::Name({v})"),
         }
     }
 }
 
-impl<'a> AssetSourceId<'a> {
-    /// Creates a new [`AssetSourceId`]
-    pub fn new(source: Option<impl Into<CowArc<'a, str>>>) -> AssetSourceId<'a> {
+impl<'a> ResourceSourceId<'a> {
+    /// Creates a new [`ResourceSourceId`]
+    pub fn new(source: Option<impl Into<CowArc<'a, str>>>) -> ResourceSourceId<'a> {
         match source {
-            Some(source) => AssetSourceId::Name(source.into()),
-            None => AssetSourceId::Default,
+            Some(source) => ResourceSourceId::Name(source.into()),
+            None => ResourceSourceId::Default,
         }
     }
 
-    /// Returns [`None`] if this is [`AssetSourceId::Default`] and [`Some`] containing the
-    /// name if this is [`AssetSourceId::Name`].
+    /// Returns [`None`] if this is [`ResourceSourceId::Default`] and [`Some`] containing the
+    /// name if this is [`ResourceSourceId::Name`].
     pub fn as_str(&self) -> Option<&str> {
         match self {
-            AssetSourceId::Default => None,
-            AssetSourceId::Name(v) => Some(v),
+            ResourceSourceId::Default => None,
+            ResourceSourceId::Name(v) => Some(v),
         }
     }
 
     /// If this is not already an owned / static id, create one. Otherwise, it will return itself (with a static lifetime).
-    pub fn into_owned(self) -> AssetSourceId<'static> {
+    pub fn into_owned(self) -> ResourceSourceId<'static> {
         match self {
-            AssetSourceId::Default => AssetSourceId::Default,
-            AssetSourceId::Name(v) => AssetSourceId::Name(v.into_owned()),
+            ResourceSourceId::Default => ResourceSourceId::Default,
+            ResourceSourceId::Name(v) => ResourceSourceId::Name(v.into_owned()),
         }
     }
 
-    /// Clones into an owned [`AssetSourceId<'static>`].
+    /// Clones into an owned [`ResourceSourceId<'static>`].
     /// This is equivalent to `.clone().into_owned()`.
     #[inline]
-    pub fn clone_owned(&self) -> AssetSourceId<'static> {
+    pub fn clone_owned(&self) -> ResourceSourceId<'static> {
         self.clone().into_owned()
     }
 }
 
-impl From<&'static str> for AssetSourceId<'static> {
+impl From<&'static str> for ResourceSourceId<'static> {
     fn from(value: &'static str) -> Self {
-        AssetSourceId::Name(value.into())
+        ResourceSourceId::Name(value.into())
     }
 }
 
-impl<'a, 'b> From<&'a AssetSourceId<'b>> for AssetSourceId<'b> {
-    fn from(value: &'a AssetSourceId<'b>) -> Self {
+impl<'a, 'b> From<&'a ResourceSourceId<'b>> for ResourceSourceId<'b> {
+    fn from(value: &'a ResourceSourceId<'b>) -> Self {
         value.clone()
     }
 }
 
-impl From<Option<&'static str>> for AssetSourceId<'static> {
+impl From<Option<&'static str>> for ResourceSourceId<'static> {
     fn from(value: Option<&'static str>) -> Self {
         match value {
-            Some(value) => AssetSourceId::Name(value.into()),
-            None => AssetSourceId::Default,
+            Some(value) => ResourceSourceId::Name(value.into()),
+            None => ResourceSourceId::Default,
         }
     }
 }
 
-impl From<String> for AssetSourceId<'static> {
+impl From<String> for ResourceSourceId<'static> {
     fn from(value: String) -> Self {
-        AssetSourceId::Name(value.into())
+        ResourceSourceId::Name(value.into())
     }
 }
 
-impl<'a> Hash for AssetSourceId<'a> {
+impl<'a> Hash for ResourceSourceId<'a> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.as_str().hash(state);
     }
 }
 
-impl<'a> PartialEq for AssetSourceId<'a> {
+impl<'a> PartialEq for ResourceSourceId<'a> {
     fn eq(&self, other: &Self) -> bool {
         self.as_str().eq(&other.as_str())
     }
@@ -103,20 +103,20 @@ impl<'a> PartialEq for AssetSourceId<'a> {
 /// Metadata about an "asset source", such as how to construct the [`AssetReader`] and [`AssetWriter`] for the source,
 /// and whether or not the source is processed.
 #[derive(Default)]
-pub struct AssetSourceBuilder {
+pub struct ResourceSourceBuilder {
     pub reader: Option<Box<dyn FnMut() -> Box<dyn ErasedAssetReader> + Send + Sync>>,
     pub writer: Option<Box<dyn FnMut(bool) -> Option<Box<dyn ErasedAssetWriter>> + Send + Sync>>,
 
     pub watch_warning: Option<&'static str>,
 }
 
-impl AssetSourceBuilder {
-    /// Builds a new [`AssetSource`] with the given `id`. If `watch` is true, the unprocessed source will watch for changes.
+impl ResourceSourceBuilder {
+    /// Builds a new [`ResourceSource`] with the given `id`. If `watch` is true, the unprocessed source will watch for changes.
     /// If `watch_processed` is true, the processed source will watch for changes.
-    pub fn build(&mut self, id: AssetSourceId<'static>) -> Option<AssetSource> {
+    pub fn build(&mut self, id: ResourceSourceId<'static>) -> Option<ResourceSource> {
         let reader = self.reader.as_mut()?();
         let writer = self.writer.as_mut().and_then(|w| w(false));
-        let mut source = AssetSource {
+        let mut source = ResourceSource {
             id: id.clone(),
             reader,
             writer,
@@ -154,9 +154,9 @@ impl AssetSourceBuilder {
     /// but some platforms (such as Android) have their own default readers / writers / watchers.
     pub fn platform_default(path: &str) -> Self {
         let default = Self::default()
-            .with_reader(AssetSource::get_default_reader(path.to_string()))
-            .with_writer(AssetSource::get_default_writer(path.to_string()))
-            .with_watch_warning(AssetSource::get_default_watch_warning());
+            .with_reader(ResourceSource::get_default_reader(path.to_string()))
+            .with_writer(ResourceSource::get_default_writer(path.to_string()))
+            .with_watch_warning(ResourceSource::get_default_watch_warning());
 
         default
     }
@@ -165,19 +165,23 @@ impl AssetSourceBuilder {
 /// A [`Resource`] that hold (repeatable) functions capable of producing new [`AssetReader`] and [`AssetWriter`] instances
 /// for a given asset source.
 #[derive(Default)]
-pub struct AssetSourceBuilders {
-    sources: HashMap<CowArc<'static, str>, AssetSourceBuilder>,
-    default: Option<AssetSourceBuilder>,
+pub struct ResourceSourceBuilders {
+    sources: HashMap<CowArc<'static, str>, ResourceSourceBuilder>,
+    default: Option<ResourceSourceBuilder>,
 }
 
-impl AssetSourceBuilders {
+impl ResourceSourceBuilders {
     /// Inserts a new builder with the given `id`
-    pub fn insert(&mut self, id: impl Into<AssetSourceId<'static>>, source: AssetSourceBuilder) {
+    pub fn insert(
+        &mut self,
+        id: impl Into<ResourceSourceId<'static>>,
+        source: ResourceSourceBuilder,
+    ) {
         match id.into() {
-            AssetSourceId::Default => {
+            ResourceSourceId::Default => {
                 self.default = Some(source);
             }
-            AssetSourceId::Name(name) => {
+            ResourceSourceId::Name(name) => {
                 self.sources.insert(name, source);
             }
         }
@@ -186,58 +190,58 @@ impl AssetSourceBuilders {
     /// Gets a mutable builder with the given `id`, if it exists.
     pub fn get_mut<'a, 'b>(
         &'a mut self,
-        id: impl Into<AssetSourceId<'b>>,
-    ) -> Option<&'a mut AssetSourceBuilder> {
+        id: impl Into<ResourceSourceId<'b>>,
+    ) -> Option<&'a mut ResourceSourceBuilder> {
         match id.into() {
-            AssetSourceId::Default => self.default.as_mut(),
-            AssetSourceId::Name(name) => self.sources.get_mut(&name.into_owned()),
+            ResourceSourceId::Default => self.default.as_mut(),
+            ResourceSourceId::Name(name) => self.sources.get_mut(&name.into_owned()),
         }
     }
 
-    /// Builds a new [`AssetSources`] collection. If `watch` is true, the unprocessed sources will watch for changes.
+    /// Builds a new [`ResourceSources`] collection. If `watch` is true, the unprocessed sources will watch for changes.
     /// If `watch_processed` is true, the processed sources will watch for changes.
-    pub fn build_sources(&mut self) -> AssetSources {
+    pub fn build_sources(&mut self) -> ResourceSources {
         let mut sources = HashMap::new();
         for (id, source) in &mut self.sources {
-            if let Some(data) = source.build(AssetSourceId::Name(id.clone_owned())) {
+            if let Some(data) = source.build(ResourceSourceId::Name(id.clone_owned())) {
                 sources.insert(id.clone_owned(), data);
             }
         }
 
-        AssetSources {
+        ResourceSources {
             sources,
             default: self
                 .default
                 .as_mut()
-                .and_then(|p| p.build(AssetSourceId::Default))
+                .and_then(|p| p.build(ResourceSourceId::Default))
                 .expect(MISSING_DEFAULT_SOURCE),
         }
     }
 
-    /// Initializes the default [`AssetSourceBuilder`] if it has not already been set.
+    /// Initializes the default [`ResourceSourceBuilder`] if it has not already been set.
     pub fn init_default_source(&mut self, path: &str) {
         self.default
-            .get_or_insert_with(|| AssetSourceBuilder::platform_default(path));
+            .get_or_insert_with(|| ResourceSourceBuilder::platform_default(path));
     }
 }
 
 /// A collection of unprocessed and processed [`AssetReader`], [`AssetWriter`], and [`AssetWatcher`] instances
-/// for a specific asset source, identified by an [`AssetSourceId`].
-pub struct AssetSource {
-    id: AssetSourceId<'static>,
+/// for a specific asset source, identified by an [`ResourceSourceId`].
+pub struct ResourceSource {
+    id: ResourceSourceId<'static>,
     reader: Box<dyn ErasedAssetReader>,
     writer: Option<Box<dyn ErasedAssetWriter>>,
 }
 
-impl AssetSource {
-    /// Starts building a new [`AssetSource`].
-    pub fn build() -> AssetSourceBuilder {
-        AssetSourceBuilder::default()
+impl ResourceSource {
+    /// Starts building a new [`ResourceSource`].
+    pub fn build() -> ResourceSourceBuilder {
+        ResourceSourceBuilder::default()
     }
 
     /// Returns this source's id.
     #[inline]
-    pub fn id(&self) -> AssetSourceId<'static> {
+    pub fn id(&self) -> ResourceSourceId<'static> {
         self.id.clone()
     }
 
@@ -299,65 +303,65 @@ impl AssetSource {
     }
 }
 
-/// A collection of [`AssetSource`]s.
-pub struct AssetSources {
-    sources: HashMap<CowArc<'static, str>, AssetSource>,
-    default: AssetSource,
+/// A collection of [`ResourceSource`]s.
+pub struct ResourceSources {
+    sources: HashMap<CowArc<'static, str>, ResourceSource>,
+    default: ResourceSource,
 }
 
-impl AssetSources {
-    /// Gets the [`AssetSource`] with the given `id`, if it exists.
+impl ResourceSources {
+    /// Gets the [`ResourceSource`] with the given `id`, if it exists.
     pub fn get<'a, 'b>(
         &'a self,
-        id: impl Into<AssetSourceId<'b>>,
-    ) -> Result<&'a AssetSource, MissingAssetSourceError> {
+        id: impl Into<ResourceSourceId<'b>>,
+    ) -> Result<&'a ResourceSource, MissingAssetSourceError> {
         match id.into().into_owned() {
-            AssetSourceId::Default => Ok(&self.default),
-            AssetSourceId::Name(name) => self
+            ResourceSourceId::Default => Ok(&self.default),
+            ResourceSourceId::Name(name) => self
                 .sources
                 .get(&name)
-                .ok_or_else(|| MissingAssetSourceError(AssetSourceId::Name(name))),
+                .ok_or_else(|| MissingAssetSourceError(ResourceSourceId::Name(name))),
         }
     }
 
     /// Iterates all asset sources in the collection (including the default source).
-    pub fn iter(&self) -> impl Iterator<Item = &AssetSource> {
+    pub fn iter(&self) -> impl Iterator<Item = &ResourceSource> {
         self.sources.values().chain(Some(&self.default))
     }
 
     /// Mutably iterates all asset sources in the collection (including the default source).
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut AssetSource> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ResourceSource> {
         self.sources.values_mut().chain(Some(&mut self.default))
     }
 
-    /// Iterates over the [`AssetSourceId`] of every [`AssetSource`] in the collection (including the default source).
-    pub fn ids(&self) -> impl Iterator<Item = AssetSourceId<'static>> + '_ {
+    /// Iterates over the [`ResourceSourceId`] of every [`ResourceSource`] in the collection (including the default source).
+    pub fn ids(&self) -> impl Iterator<Item = ResourceSourceId<'static>> + '_ {
         self.sources
             .keys()
-            .map(|k| AssetSourceId::Name(k.clone_owned()))
-            .chain(Some(AssetSourceId::Default))
+            .map(|k| ResourceSourceId::Name(k.clone_owned()))
+            .chain(Some(ResourceSourceId::Default))
     }
 }
 
-/// An error returned when an [`AssetSource`] does not exist for a given id.
+/// An error returned when an [`ResourceSource`] does not exist for a given id.
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 #[error("Asset Source '{0}' does not exist")]
-pub struct MissingAssetSourceError(AssetSourceId<'static>);
+pub struct MissingAssetSourceError(ResourceSourceId<'static>);
 
 /// An error returned when an [`AssetWriter`] does not exist for a given id.
 #[derive(Error, Debug, Clone)]
 #[error("Asset Source '{0}' does not have an AssetWriter.")]
-pub struct MissingAssetWriterError(AssetSourceId<'static>);
+pub struct MissingAssetWriterError(ResourceSourceId<'static>);
 
 /// An error returned when a processed [`AssetReader`] does not exist for a given id.
 #[derive(Error, Debug, Clone, PartialEq, Eq)]
 #[error("Asset Source '{0}' does not have a processed AssetReader.")]
-pub struct MissingProcessedAssetReaderError(AssetSourceId<'static>);
+pub struct MissingProcessedAssetReaderError(ResourceSourceId<'static>);
 
 /// An error returned when a processed [`AssetWriter`] does not exist for a given id.
 #[derive(Error, Debug, Clone)]
 #[error("Asset Source '{0}' does not have a processed AssetWriter.")]
-pub struct MissingProcessedAssetWriterError(AssetSourceId<'static>);
+pub struct MissingProcessedAssetWriterError(ResourceSourceId<'static>);
 
 const MISSING_DEFAULT_SOURCE: &str =
-    "A default AssetSource is required. Add one to `AssetSourceBuilders`";
+    "A default ResourceSource is required. Add one to `ResourceSourceBuilders`";

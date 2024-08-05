@@ -17,7 +17,7 @@ use mini_core::{
 
 use crate::{
     error::{LoadError, ResourceLoadError},
-    io::AssetPath,
+    io::ResourcePath,
 };
 
 pub use mini_resource_macros::ResourceData;
@@ -150,7 +150,7 @@ pub struct ResourceHeader {
 pub enum ResourceKind {
     #[default]
     Embedded,
-    External(AssetPath<'static>),
+    External(ResourcePath<'static>),
 }
 
 impl ResourceKind {
