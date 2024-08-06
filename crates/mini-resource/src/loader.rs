@@ -8,7 +8,7 @@ use mini_core::{
 };
 
 use crate::{
-    io::{ResourcePath, Reader},
+    io::{Reader, ResourcePath},
     manager::ResourceManager,
     meta::{ResourceMeta, ResourceMetaDyn, ResourceSettings},
     prelude::Resource,
@@ -56,22 +56,26 @@ impl<R: ResourceData> From<LoadedResource<R>> for ErasedLoadedResource {
 
 pub struct LoadContext<'a> {
     pub(crate) resource_mananger: &'a ResourceManager,
-    asset_path: ResourcePath<'static>,
+    resource_path: ResourcePath<'static>,
 }
 
 impl<'a> LoadContext<'a> {
     pub fn path(&self) -> &Path {
-        self.asset_path.path()
+        self.resource_path.path()
+    }
+
+    pub fn resource_path(&self) -> &ResourcePath<'static> {
+        &self.resource_path
     }
 
     /// Creates a new [`LoadContext`] instance.
     pub(crate) fn new(
         resource_mananger: &'a ResourceManager,
-        asset_path: ResourcePath<'static>,
+        resource_path: ResourcePath<'static>,
     ) -> Self {
         Self {
             resource_mananger,
-            asset_path,
+            resource_path,
         }
     }
 

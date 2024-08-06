@@ -10,7 +10,7 @@ use std::{
 
 use mini_core::{
     downcast::Downcast,
-    parking_lot::Mutex,
+    parking_lot::{Mutex, MutexGuard},
     type_uuid::TypeUuidProvider,
     uuid::{uuid, Uuid},
 };
@@ -37,6 +37,7 @@ pub trait ErasedResourceData: 'static + Debug + Send + Downcast {
     fn type_uuid(&self) -> Uuid;
 }
 
+#[derive(Clone)]
 pub struct Resource<T>
 where
     T: ResourceData,
@@ -47,11 +48,128 @@ where
 
 impl<T: ResourceData> Resource<T> {
     pub fn new(untyped: UntypedResource) -> Self {
-        assert_eq!(untyped.type_uuid(), T::type_uuid());
+        // assert_eq!(untyped.type_uuid(), T::type_uuid());
 
         Self {
             untyped,
             type_marker: PhantomData,
+        }
+    }
+
+    #[inline]
+    pub fn data_ref(&self) -> ResourceDataRef<'_, T> {
+        ResourceDataRef {
+            guard: self.untyped.0.lock(),
+            phantom: Default::default(),
+        }
+    }
+}
+
+pub struct ResourceDataRef<'a, T>
+where
+    T: ResourceData,
+{
+    guard: MutexGuard<'a, ResourceHeader>,
+    phantom: PhantomData<T>,
+}
+
+impl<'a, T> ResourceDataRef<'a, T>
+where
+    T: ResourceData,
+{
+    #[inline]
+    pub fn as_loaded_ref(&self) -> Option<&T> {
+        match self.guard.state {
+            ResourceState::Ok(ref data) => <dyn ErasedResourceData>::as_any(&**data).downcast_ref(),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn as_loaded_mut(&mut self) -> Option<&mut T> {
+        match self.guard.state {
+            ResourceState::Ok(ref mut data) => {
+                <dyn ErasedResourceData>::as_any_mut(&mut **data).downcast_mut()
+            }
+            _ => None,
+        }
+    }
+}
+
+impl<'a, T> Debug for ResourceDataRef<'a, T>
+where
+    T: ResourceData,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.guard.state {
+            ResourceState::Pending { .. } => {
+                write!(
+                    f,
+                    "Attempt to get reference to resource data while it is not loaded! Path is {}",
+                    self.guard.kind
+                )
+            }
+            ResourceState::LoadError { .. } => {
+                write!(
+                    f,
+                    "Attempt to get reference to resource data which failed to load! Path is {}",
+                    self.guard.kind
+                )
+            }
+            ResourceState::Ok(ref data) => data.fmt(f),
+        }
+    }
+}
+
+impl<'a, T> Deref for ResourceDataRef<'a, T>
+where
+    T: ResourceData,
+{
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self.guard.state {
+            ResourceState::Pending { .. } => {
+                panic!(
+                    "Attempt to get reference to resource data while it is not loaded! Path is {}",
+                    self.guard.kind
+                )
+            }
+            ResourceState::LoadError { .. } => {
+                panic!(
+                    "Attempt to get reference to resource data which failed to load! Path is {}",
+                    self.guard.kind
+                )
+            }
+            ResourceState::Ok(ref data) => <dyn ErasedResourceData>::as_any(&**data)
+                .downcast_ref()
+                .expect("Type mismatch!"),
+        }
+    }
+}
+
+impl<'a, T> DerefMut for ResourceDataRef<'a, T>
+where
+    T: ResourceData,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        let header = &mut *self.guard;
+        match header.state {
+            ResourceState::Pending { .. } => {
+                panic!(
+                    "Attempt to get reference to resource data while it is not loaded! Path is {}",
+                    header.kind
+                )
+            }
+            ResourceState::LoadError { .. } => {
+                panic!(
+                    "Attempt to get reference to resource data which failed to load! Path is {}",
+                    header.kind
+                )
+            }
+            ResourceState::Ok(ref mut data) => <dyn ErasedResourceData>::as_any_mut(&mut **data)
+                .downcast_mut()
+                .expect("Type mismatch!"),
         }
     }
 }

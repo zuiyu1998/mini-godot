@@ -15,6 +15,7 @@ pub use parking_lot;
 pub use stackfuture;
 pub use thiserror;
 pub use tracing;
+pub use tracing_subscriber;
 pub use uuid;
 
 pub mod prelude {

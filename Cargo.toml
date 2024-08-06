@@ -1,6 +1,19 @@
+[package]
+name = "mini-godot"
+version = "0.1.0"
+edition = "2021"
+
 [workspace]
 members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
 thiserror = { version = "1.0" }
+
+
+[dependencies]
+mini-internal = { path = "./crates/mini-internal" }
+
+[[example]]
+name = "demo"
+path = "examples/demo.rs"

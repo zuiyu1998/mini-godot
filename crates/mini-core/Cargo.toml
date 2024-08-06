@@ -21,3 +21,4 @@ bytemuck = "1.7"
 bitflags = { version = "2.6" }
 async-fs = { version = "2.1.2" }
 tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }

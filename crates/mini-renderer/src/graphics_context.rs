@@ -7,6 +7,7 @@ use mini_window::window::{ErasedWindow, WindowId};
 use crate::{
     prelude::WindowSurfaceDatas,
     renderer::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, Renderer},
+    shader::ShaderLoader,
     wrapper::WgpuWrapper,
 };
 
@@ -104,7 +105,9 @@ impl GraphicsContext {
         self.build_resource_manager(resource_manager);
     }
 
-    pub fn build_resource_manager(&mut self, _resource_manager: &ResourceManager) {}
+    pub fn build_resource_manager(&mut self, resource_manager: &ResourceManager) {
+        resource_manager.add_loader(ShaderLoader::default());
+    }
 
     fn initialize_graphics_context(&mut self, window: &ErasedWindow) {
         let future_renderer_resources: FutureRendererResources = Arc::new(Mutex::new(None));
@@ -132,7 +135,7 @@ impl GraphicsContext {
             };
 
             let instance = Instance::new(wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::PRIMARY,
+                backends: wgpu::Backends::VULKAN,
                 ..Default::default()
             });
 
