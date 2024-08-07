@@ -4,62 +4,40 @@ use std::{
 };
 
 use mini_window::window::{ErasedWindow, WindowId};
-use wgpu::{Surface, SurfaceConfiguration, SurfaceTargetUnsafe};
+use wgpu::{
+    Surface, SurfaceConfiguration, SurfaceTargetUnsafe, SurfaceTexture, TextureView,
+    TextureViewDescriptor,
+};
 
-pub use super::prelude::{Renderer, WgpuWrapper};
+pub use super::prelude::{RenderAdapter, RenderDevice, RenderInstance, WgpuWrapper};
 
 pub struct SurfaceData {
     //画板
     pub surface: WgpuWrapper<Surface<'static>>,
     pub configuration: SurfaceConfiguration,
+
+    pub swap_chain_texture_view: TextureView,
+
+    pub swap_chain_texture: SurfaceTexture,
 }
 
 impl SurfaceData {
-    pub fn render(&mut self, renderer: &Renderer) {
-        let output = self.surface.get_current_texture().unwrap();
-
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut encoder =
-            renderer
-                .device
-                .wgpu_device()
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Render Encoder"),
-                });
-
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
-
-            render_pass.set_pipeline(&renderer.render_pipeline.as_ref().unwrap()); // 2.
-            render_pass.draw(0..3, 0..1); // 3.
-        }
-
-        renderer.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
+    fn set_swapchain_texture(&mut self, frame: wgpu::SurfaceTexture) {
+        let texture_view_descriptor = TextureViewDescriptor {
+            format: Some(frame.texture.format().add_srgb_suffix()),
+            ..Default::default()
+        };
+        self.swap_chain_texture_view =
+            TextureView::from(frame.texture.create_view(&texture_view_descriptor));
+        self.swap_chain_texture = SurfaceTexture::from(frame);
     }
 
-    pub fn initialize_surface_data(renderer: &Renderer, window: &ErasedWindow) -> Self {
+    pub fn initialize_surface_data(
+        device: &RenderDevice,
+        instance: &RenderInstance,
+        adapter: &RenderAdapter,
+        window: &ErasedWindow,
+    ) -> Self {
         let size = window.window.physical_size();
 
         let surface_target = SurfaceTargetUnsafe::RawHandle {
@@ -71,12 +49,12 @@ impl SurfaceData {
         let surface = unsafe {
             // NOTE: On some OSes this MUST be called from the main thread.
             // As of wgpu 0.15, only fallible if the given window is a HTML canvas and obtaining a WebGPU or WebGL2 context fails.
-            renderer
-                .instance
+
+            instance
                 .create_surface_unsafe(surface_target)
                 .expect("Failed to create wgpu surface")
         };
-        let caps = surface.get_capabilities(&renderer.adapter);
+        let caps = surface.get_capabilities(&adapter);
 
         let surface_format = caps
             .formats
@@ -96,11 +74,23 @@ impl SurfaceData {
             desired_maximum_frame_latency: 2,
         };
 
-        surface.configure(&renderer.device.wgpu_device(), &config);
+        surface.configure(&device.wgpu_device(), &config);
+
+        let frame = surface.get_current_texture().unwrap();
+
+        let texture_view_descriptor = TextureViewDescriptor {
+            format: Some(frame.texture.format().add_srgb_suffix()),
+            ..Default::default()
+        };
+        let swap_chain_texture_view =
+            TextureView::from(frame.texture.create_view(&texture_view_descriptor));
+        let swap_chain_texture = SurfaceTexture::from(frame);
 
         Self {
             surface: WgpuWrapper::new(surface),
             configuration: config,
+            swap_chain_texture,
+            swap_chain_texture_view,
         }
     }
 }
@@ -126,13 +116,10 @@ impl DerefMut for WindowSurfaceDatas {
 }
 
 impl WindowSurfaceDatas {
-    pub fn initialize_window(&mut self, renderer: &Renderer, window: &ErasedWindow) {
+    pub fn initialize_window(&mut self, window: &ErasedWindow, surface_data: SurfaceData) {
         if self.initialized_windows.contains(&window.id) {
             return;
         }
-
-        let surface_data = SurfaceData::initialize_surface_data(renderer, window);
-
         self.surface_datas.insert(window.id, surface_data);
 
         self.initialized_windows.insert(window.id);

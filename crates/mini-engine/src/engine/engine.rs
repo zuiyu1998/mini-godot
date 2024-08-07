@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::renderer::prelude::{GraphicsContext, ImageLoader};
-use mini_core::tracing_subscriber::{self, filter::EnvFilter, fmt, prelude::*};
+use crate::renderer::prelude::GraphicsContext;
+use mini_core::tracing_subscriber::{self};
 use mini_resource::prelude::ResourceManager;
 use mini_task::TaskPool;
 use mini_window::prelude::ErasedWindow;

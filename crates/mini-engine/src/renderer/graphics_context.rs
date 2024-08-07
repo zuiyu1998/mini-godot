@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use mini_core::{futures_lite, parking_lot::Mutex};
 use mini_resource::prelude::ResourceManager;
-use mini_window::window::{ErasedWindow, WindowId};
+use mini_window::window::ErasedWindow;
 
 use crate::renderer::{
-    prelude::WindowSurfaceDatas,
     renderer::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, Renderer},
     wrapper::WgpuWrapper,
 };
@@ -13,80 +12,12 @@ use crate::renderer::{
 use wgpu::{DeviceDescriptor, Instance, MemoryHints, Surface, SurfaceTargetUnsafe};
 
 pub struct InitializedGraphicsContext {
-    window_surface_datas: WindowSurfaceDatas,
     renderer: Renderer,
 }
 
 impl InitializedGraphicsContext {
     pub fn render(&mut self) {
-        for render_contex in self.window_surface_datas.values_mut() {
-            render_contex.render(&self.renderer);
-        }
-    }
-
-    pub fn add_render_pipeline(&mut self, window_id: &WindowId) {
-        let surface_data = self.window_surface_datas.get(window_id).unwrap();
-
-        let shader = self
-            .renderer
-            .device
-            .wgpu_device()
-            .create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-
-        let render_pipeline_layout = self.renderer.device.wgpu_device().create_pipeline_layout(
-            &wgpu::PipelineLayoutDescriptor {
-                label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            },
-        );
-
-        let render_pipeline = self.renderer.device.wgpu_device().create_render_pipeline(
-            &wgpu::RenderPipelineDescriptor {
-                label: Some("Render Pipeline"),
-                layout: Some(&render_pipeline_layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: "vs_main", // 1.
-                    buffers: &[],           // 2.
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                },
-                fragment: Some(wgpu::FragmentState {
-                    // 3.
-                    module: &shader,
-                    entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
-                        // 4.
-                        format: surface_data.configuration.format,
-                        blend: Some(wgpu::BlendState::REPLACE),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList, // 1.
-                    strip_index_format: None,
-                    front_face: wgpu::FrontFace::Ccw, // 2.
-                    cull_mode: Some(wgpu::Face::Back),
-                    // Setting this to anything other than Fill requires Features::NON_FILL_POLYGON_MODE
-                    polygon_mode: wgpu::PolygonMode::Fill,
-                    // Requires Features::DEPTH_CLIP_CONTROL
-                    unclipped_depth: false,
-                    // Requires Features::CONSERVATIVE_RASTERIZATION
-                    conservative: false,
-                },
-                depth_stencil: None, // 1.
-                multisample: wgpu::MultisampleState {
-                    count: 1,                         // 2.
-                    mask: !0,                         // 3.
-                    alpha_to_coverage_enabled: false, // 4.
-                },
-                multiview: None, // 5.
-                cache: None,     // 6.
-            },
-        );
-
-        self.renderer.render_pipeline = Some(render_pipeline);
+        self.renderer.render()
     }
 }
 
@@ -174,22 +105,13 @@ impl GraphicsContext {
         let (device, queue, instance, adapter) = future_renderer_resources.lock().take().unwrap();
 
         *self = GraphicsContext::Initialized(InitializedGraphicsContext {
-            window_surface_datas: Default::default(),
             renderer: Renderer::new(device, queue, instance, adapter),
         })
     }
 
-    pub fn initialize_windows(&mut self, window: &ErasedWindow) {
+    pub fn initialize_window(&mut self, window: &ErasedWindow) {
         if let GraphicsContext::Initialized(context) = self {
-            context
-                .window_surface_datas
-                .initialize_window(&context.renderer, window)
-        }
-    }
-
-    pub fn add_render_pipeline(&mut self, window_id: &WindowId) {
-        if let GraphicsContext::Initialized(context) = self {
-            context.add_render_pipeline(window_id);
+            context.renderer.initialize_window(window)
         }
     }
 

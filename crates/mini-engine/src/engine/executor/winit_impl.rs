@@ -61,12 +61,8 @@ impl ApplicationHandler for WinitExecutor {
             for window in self.windows.windows.values() {
                 self.engine
                     .graphics_context
-                    .initialize_windows(&window.erased_window);
+                    .initialize_window(&window.erased_window);
             }
-
-            self.engine
-                .graphics_context
-                .add_render_pipeline(&self.windows.primary.unwrap());
 
             self.lifecycle = AppLifecycle::Running;
         }
