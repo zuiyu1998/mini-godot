@@ -6,7 +6,7 @@ use std::{
 use mini_window::window::{ErasedWindow, WindowId};
 use wgpu::{Surface, SurfaceConfiguration, SurfaceTargetUnsafe};
 
-use crate::{renderer::Renderer, wrapper::WgpuWrapper};
+pub use super::prelude::{Renderer, WgpuWrapper};
 
 pub struct SurfaceData {
     //画板

@@ -1,4 +1,4 @@
-use crate::wrapper::WgpuWrapper;
+use crate::renderer::wrapper::WgpuWrapper;
 use mini_core::prelude::{Deref, DerefMut};
 use std::sync::Arc;
 use wgpu::{Adapter, AdapterInfo, Instance, Queue};

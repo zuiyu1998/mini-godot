@@ -8,6 +8,7 @@ pub struct Renderer {
     pub queue: RenderQueue,
     pub instance: RenderInstance,
     pub adapter: RenderAdapter,
+    //网格
 }
 
 impl Renderer {

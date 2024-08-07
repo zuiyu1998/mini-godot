@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use crate::renderer::prelude::{GraphicsContext, ImageLoader};
 use mini_core::tracing_subscriber::{self, filter::EnvFilter, fmt, prelude::*};
-use mini_renderer::prelude::{GraphicsContext, ImageLoader};
 use mini_resource::prelude::ResourceManager;
 use mini_task::TaskPool;
 use mini_window::prelude::ErasedWindow;
@@ -18,10 +18,6 @@ impl Engine {
     pub fn initialize(&mut self, window: &ErasedWindow) {
         self.graphics_context
             .initialize(&window, &self.resource_manager);
-
-        let shader = self.resource_manager.load("shader.wgsl");
-
-        self.scene.shader = Some(shader);
     }
 
     pub fn from_params() -> Self {
@@ -32,7 +28,7 @@ impl Engine {
         let task_pool = Arc::new(TaskPool::new());
         let resource_manager = ResourceManager::new(task_pool);
 
-        let scene = Scene { shader: None };
+        let scene = Scene {};
 
         Engine {
             resource_manager,

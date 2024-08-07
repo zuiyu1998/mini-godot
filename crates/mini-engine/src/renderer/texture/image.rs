@@ -6,7 +6,7 @@ use mini_core::{
 use mini_resource::prelude::ResourceData;
 
 use super::prelude::TextureError;
-use crate::wrapper::MiniDefault;
+use crate::renderer::prelude::MiniDefault;
 
 use image::DynamicImage;
 use wgpu::{Extent3d, TextureDimension, TextureFormat};

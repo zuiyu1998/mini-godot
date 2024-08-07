@@ -4,10 +4,9 @@ use mini_core::{futures_lite, parking_lot::Mutex};
 use mini_resource::prelude::ResourceManager;
 use mini_window::window::{ErasedWindow, WindowId};
 
-use crate::{
+use crate::renderer::{
     prelude::WindowSurfaceDatas,
     renderer::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, Renderer},
-    shader::ShaderLoader,
     wrapper::WgpuWrapper,
 };
 
@@ -105,9 +104,7 @@ impl GraphicsContext {
         self.build_resource_manager(resource_manager);
     }
 
-    pub fn build_resource_manager(&mut self, resource_manager: &ResourceManager) {
-        resource_manager.add_loader(ShaderLoader::default());
-    }
+    pub fn build_resource_manager(&mut self, _resource_manager: &ResourceManager) {}
 
     fn initialize_graphics_context(&mut self, window: &ErasedWindow) {
         let future_renderer_resources: FutureRendererResources = Arc::new(Mutex::new(None));

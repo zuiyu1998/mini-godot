@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use mini_core::prelude::EnumVariantMeta;
-use mini_renderer::wgpu::{PrimitiveTopology, VertexFormat};
+use wgpu::{PrimitiveTopology, VertexFormat};
 
 ///网格
 #[derive(Debug, Clone)]
