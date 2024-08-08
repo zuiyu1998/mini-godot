@@ -3,7 +3,7 @@ use wgpu::RenderPipeline;
 
 use super::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue};
 
-use crate::renderer::{prelude::SurfaceData, surface_data::WindowSurfaceDatas};
+use crate::surface_data::{SurfaceData, WindowSurfaceDatas};
 
 pub struct Renderer {
     pub render_pipeline: Option<RenderPipeline>,
@@ -16,7 +16,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn render(&mut self) {}
+    pub fn render(&mut self) {
+        for surface_data in self.window_surface_datas.values_mut() {
+            surface_data.set_swapchain_texture();
+        }
+
+        for surface_data in self.window_surface_datas.values_mut() {
+            surface_data.present();
+        }
+    }
 
     pub fn initialize_window(&mut self, window: &ErasedWindow) {
         let surface_data = SurfaceData::initialize_surface_data(

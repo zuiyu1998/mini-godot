@@ -1371,15 +1371,12 @@ dependencies = [
 name = "mini-engine"
 version = "0.1.0"
 dependencies = [
- "image",
  "mini-core",
+ "mini-renderer",
  "mini-resource",
  "mini-task",
  "mini-window",
  "mini-winit",
- "naga 22.1.0",
- "naga_oil",
- "wgpu",
 ]
 
 [[package]]
@@ -1410,6 +1407,19 @@ dependencies = [
 [[package]]
 name = "mini-pool"
 version = "0.1.0"
+
+[[package]]
+name = "mini-renderer"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "mini-core",
+ "mini-resource",
+ "mini-window",
+ "naga 22.1.0",
+ "naga_oil",
+ "wgpu",
+]
 
 [[package]]
 name = "mini-resource"

@@ -9,27 +9,38 @@ use wgpu::{
     TextureViewDescriptor,
 };
 
-pub use super::prelude::{RenderAdapter, RenderDevice, RenderInstance, WgpuWrapper};
+pub use crate::{
+    renderer::{RenderAdapter, RenderDevice, RenderInstance},
+    wrapper::WgpuWrapper,
+};
 
 pub struct SurfaceData {
     //画板
     pub surface: WgpuWrapper<Surface<'static>>,
     pub configuration: SurfaceConfiguration,
 
-    pub swap_chain_texture_view: TextureView,
+    pub swap_chain_texture_view: Option<TextureView>,
 
-    pub swap_chain_texture: SurfaceTexture,
+    pub swap_chain_texture: Option<SurfaceTexture>,
 }
 
 impl SurfaceData {
-    fn set_swapchain_texture(&mut self, frame: wgpu::SurfaceTexture) {
+    pub fn set_swapchain_texture(&mut self) {
+        let frame = self.surface.get_current_texture().unwrap();
+
         let texture_view_descriptor = TextureViewDescriptor {
             format: Some(frame.texture.format().add_srgb_suffix()),
             ..Default::default()
         };
-        self.swap_chain_texture_view =
-            TextureView::from(frame.texture.create_view(&texture_view_descriptor));
-        self.swap_chain_texture = SurfaceTexture::from(frame);
+        self.swap_chain_texture_view = Some(TextureView::from(
+            frame.texture.create_view(&texture_view_descriptor),
+        ));
+        self.swap_chain_texture = Some(SurfaceTexture::from(frame));
+    }
+
+    pub fn present(&mut self) {
+        let swap_chain_texture = self.swap_chain_texture.take().unwrap();
+        swap_chain_texture.present();
     }
 
     pub fn initialize_surface_data(
@@ -76,21 +87,11 @@ impl SurfaceData {
 
         surface.configure(&device.wgpu_device(), &config);
 
-        let frame = surface.get_current_texture().unwrap();
-
-        let texture_view_descriptor = TextureViewDescriptor {
-            format: Some(frame.texture.format().add_srgb_suffix()),
-            ..Default::default()
-        };
-        let swap_chain_texture_view =
-            TextureView::from(frame.texture.create_view(&texture_view_descriptor));
-        let swap_chain_texture = SurfaceTexture::from(frame);
-
         Self {
             surface: WgpuWrapper::new(surface),
             configuration: config,
-            swap_chain_texture,
-            swap_chain_texture_view,
+            swap_chain_texture: None,
+            swap_chain_texture_view: None,
         }
     }
 }

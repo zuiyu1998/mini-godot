@@ -1,5 +1,4 @@
 pub mod material;
-pub mod mesh;
 pub mod node;
 pub mod object;
 

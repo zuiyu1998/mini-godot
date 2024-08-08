@@ -1,4 +1,4 @@
-use crate::renderer::wrapper::{render_resource_wrapper, WgpuWrapper};
+use crate::wrapper::{render_resource_wrapper, WgpuWrapper};
 
 render_resource_wrapper!(ErasedRenderDevice, wgpu::Device);
 

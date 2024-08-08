@@ -1,5 +1,5 @@
-pub mod render_device;
-pub mod renderer;
+mod render_device;
+mod renderer;
 mod wgpu_impl;
 
 pub use render_device::*;

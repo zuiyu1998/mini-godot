@@ -4,7 +4,7 @@ use mini_core::{futures_lite, parking_lot::Mutex};
 use mini_resource::prelude::ResourceManager;
 use mini_window::window::ErasedWindow;
 
-use crate::renderer::{
+use crate::{
     renderer::{RenderAdapter, RenderDevice, RenderInstance, RenderQueue, Renderer},
     wrapper::WgpuWrapper,
 };
